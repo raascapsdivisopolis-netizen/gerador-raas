@@ -6,11 +6,9 @@ st.set_page_config(page_title="Gerador RAAS-PS", layout="wide")
 
 st.title("🗂️ Painel de Atendimentos - RAAS-PS (DATASUS)")
 
-# Inicializa a lista de registros na sessão
 if "atendimentos" not in st.session_state:
     st.session_state.atendimentos = []
 
-# --- PAINEL DE CONTROLE DA COMPETÊNCIA E BACKUP ---
 st.container()
 st.markdown("### ⚙️ Configuração da Competência & Gerenciamento de Lote")
 col_comp1, col_comp2, col_comp3 = st.columns([1, 1.5, 1.5])
@@ -19,7 +17,6 @@ with col_comp1:
     competencia_input = st.text_input("Competência Ativa (AAAAMM)", "202608", help="Ex: 202608 para Agosto/2026")
 
 with col_comp2:
-    # Salvar rascunho em arquivo JSON para não perder caso a página atualize
     if len(st.session_state.atendimentos) > 0:
         json_str = json.dumps(st.session_state.atendimentos, ensure_ascii=False, indent=4)
         st.download_button(
@@ -30,7 +27,6 @@ with col_comp2:
         )
 
 with col_comp3:
-    # Carregar rascunho salvo anteriormente
     uploaded_backup = st.file_uploader("📂 Carregar Rascunho Salvo", type=["json"])
     if uploaded_backup is not None:
         try:
@@ -49,11 +45,11 @@ with col_form:
     st.subheader("👤 1. Dados do Paciente (Validação por CPF)")
     
     cnes = st.text_input("CNES da Unidade", "2119811")
-    cbo = st.text_input("CBO do Profissional (Ex: 225125 / 251510 / 223505)", "225125")
+    cbo = st.text_input("CBO do Profissional", "225125")
     cns_prof = st.text_input("CNS do Profissional", "702805644714369")
     
     st.markdown("---")
-    cpf_user = st.text_input("CPF do Paciente (Apenas números - 11 dígitos)", "", max_chars=11)
+    cpf_user = st.text_input("CPF do Paciente (11 dígitos)", "", max_chars=11)
     nome_user = st.text_input("Nome do Paciente", "")
     nome_mae = st.text_input("Nome da Mãe do Paciente", "")
     dt_nasc = st.text_input("Data de Nascimento (AAAAMMDD)", "")
@@ -61,7 +57,15 @@ with col_form:
     raca = st.selectbox("Raça/Cor", ["01", "02", "03", "04", "05"], index=3)
     cep = st.text_input("CEP", "39912000")
     municipio = st.text_input("Município IBGE (c/ dígito)", "3122450")
-    logradouro = st.text_input("Logradouro (Ex: RUA APOLINARIO BORGES)", "")
+    
+    col_tl, col_log = st.columns([1, 2])
+    with col_tl:
+        tipo_log = st.selectbox("Tipo Logradouro", ["RUA", "AV", "PCA", "AL", "TRAV", "ROD"])
+    with col_log:
+        logradouro = st.text_input("Nome do Logradouro", "")
+        
+    situacao_rua = st.selectbox("Situação de Rua", ["N", "S"])
+    esf = st.selectbox("Cobertura ESF", ["N", "S"])
     
     col_serv, col_class = st.columns(2)
     with col_serv:
@@ -72,7 +76,7 @@ with col_form:
     st.subheader("🏥 2. Adicionar Atendimento / Procedimento")
     with st.form("form_procedimento", clear_on_submit=True):
         dt_atend = st.text_input("Data do Atendimento (AAAAMMDD)", "")
-        cid = st.text_input("CID Principal", "F411")
+        cid = st.text_input("CID Principal (Ex: F411)", "F411", max_chars=4)
         procedimento = st.text_input("Procedimento (SIGTAP - 10 dígitos)", "0301080020")
         quantidade = st.text_input("Quantidade", "1")
 
@@ -90,12 +94,13 @@ with col_form:
                     "nome_user": nome_user, "nome_mae": nome_mae, "cpf_user": cpf_limpo,
                     "cns_user": "0".zfill(15),
                     "dt_nasc": dt_nasc, "sexo": sexo, "raca": raca, "cep": cep,
-                    "municipio": municipio, "logradouro": logradouro, "cid": cid,
+                    "municipio": municipio, "tipo_log": tipo_log, "logradouro": logradouro,
+                    "situacao_rua": situacao_rua, "esf": esf, "cid": cid.ljust(4, ' '),
                     "servico": servico, "classificacao": classificacao,
                     "procedimento": procedimento, "quantidade": quantidade
                 }
                 st.session_state.atendimentos.append(novo_registro)
-                st.success(f"Procedimento {procedimento} adicionado para {nome_user} (CPF: {cpf_limpo})!")
+                st.success(f"Procedimento {procedimento} adicionado para {nome_user}!")
 
 with col_hist:
     total_digitados = len(st.session_state.atendimentos)
@@ -111,7 +116,7 @@ with col_hist:
         for idx, reg in ultimos:
             with st.expander(f"👤 {reg['nome_user']} — CPF: {reg['cpf_user']} — Proc: {reg['procedimento']}"):
                 st.write(f"**Mãe:** {reg['nome_mae']} | **Data:** {reg['dt_atend']} | **CID:** {reg['cid']}")
-                st.write(f"**Serviço/Classif:** {reg['servico']}/{reg['classificacao']} | **Qtd:** {reg['quantidade']}")
+                st.write(f"**Endereço:** {reg['tipo_log']} {reg['logradouro']} | **Qtd:** {reg['quantidade']}")
                 
                 if st.button("🗑️ Remover este registro", key=f"del_{idx}"):
                     st.session_state.atendimentos.pop(idx)
@@ -130,26 +135,29 @@ with col_hist:
             sub15_total = 0
             
             for reg in st.session_state.atendimentos:
-                l15_log = reg["logradouro"].ljust(30, ' ')[:30]
                 l15_nome = reg["nome_user"].ljust(30, ' ')[:30]
                 l15_mae = reg["nome_mae"].ljust(30, ' ')[:30]
+                l15_end = f"{reg['tipo_log']} {reg['logradouro']}".ljust(30, ' ')[:30]
                 l15_serv = reg["servico"].zfill(3)[:3]
                 l15_class = reg["classificacao"].zfill(2)[:2]
+                l15_cid = reg["cid"].ljust(4, ' ')[:4]
                 
                 sub16_total += int(reg["procedimento"]) + int(reg["quantidade"])
                 sub15_total += int(reg["cnes"]) + int(reg["cns_user"])
                 
+                # Linha 15 rigorosamente alinhada com os campos corrigidos
                 linha15 = (
                     "15" + codigo_uf + ano_mes + reg["cnes"].zfill(7) + reg["cns_user"].zfill(15) + reg["dt_atend"].zfill(8) + 
                     "".ljust(8, ' ') + l15_nome + "0001".zfill(10) + "".ljust(30, ' ') + 
-                    l15_log + "00064".zfill(5) + "CASA      ".ljust(10, ' ') + reg["cep"].zfill(8) + 
+                    l15_end + "00064".zfill(5) + "CASA      ".ljust(10, ' ') + reg["cep"].zfill(8) + 
                     reg["municipio"].zfill(7) + reg["dt_nasc"].zfill(8) + reg["sexo"].ljust(1, ' ') + 
                     reg["raca"].zfill(2) + l15_mae + l15_serv + l15_class + "    999999999993399999999921        " + 
-                    reg["cid"].ljust(4, ' ') + "                0101S" + reg["cnes"].zfill(7) + "00001" + 
-                    "00" + "RAS" + "N" + "N" + "   " + "".ljust(13, ' ') + "CENTRO                        ".ljust(30, ' ') + 
+                    l15_cid + "                0101" + reg["esf"] + reg["cnes"].zfill(7) + "00001" + 
+                    reg["situacao_rua"] + "RAS" + "N" + "N" + "   " + "".ljust(13, ' ') + "CENTRO                        ".ljust(30, ' ') + 
                     "081" + "".ljust(40, ' ') + reg["cpf_user"].zfill(11) + "    "
                 )
                 
+                # Linha 16
                 linha16 = (
                     "16" + codigo_uf + ano_mes + reg["cnes"].zfill(7) + reg["cns_user"].zfill(15) + reg["dt_atend"].zfill(8) + 
                     reg["procedimento"].zfill(10) + reg["cbo"].zfill(6) + reg["cns_prof"].zfill(15) + reg["dt_atend"].zfill(8) + 
