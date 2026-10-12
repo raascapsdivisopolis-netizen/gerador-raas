@@ -1,5 +1,6 @@
 import streamlit as st
 import io
+import json
 
 st.set_page_config(page_title="Gerador RAAS-PS", layout="wide")
 
@@ -9,14 +10,36 @@ st.title("🗂️ Painel de Atendimentos - RAAS-PS (DATASUS)")
 if "atendimentos" not in st.session_state:
     st.session_state.atendimentos = []
 
-# --- PAINEL DE CONTROLE DA COMPETÊNCIA ---
+# --- PAINEL DE CONTROLE DA COMPETÊNCIA E BACKUP ---
 st.container()
-st.markdown("### ⚙️ Configuração da Competência")
-col_comp1, col_comp2 = st.columns([1, 2])
+st.markdown("### ⚙️ Configuração da Competência & Gerenciamento de Lote")
+col_comp1, col_comp2, col_comp3 = st.columns([1, 1.5, 1.5])
+
 with col_comp1:
     competencia_input = st.text_input("Competência Ativa (AAAAMM)", "202608", help="Ex: 202608 para Agosto/2026")
+
 with col_comp2:
-    st.markdown(f"<br><h4 style='color: #2e6c80;'>Competência Aberta no Sistema: <b>{competencia_input}</b></h4>", unsafe_allow_html=True)
+    # Salvar rascunho em arquivo JSON para não perder caso a página atualize
+    if len(st.session_state.atendimentos) > 0:
+        json_str = json.dumps(st.session_state.atendimentos, ensure_ascii=False, indent=4)
+        st.download_button(
+            label="💾 Salvar Rascunho Atual (Backup)",
+            data=json_str,
+            file_name=f"rascunho_raas_{competencia_input}.json",
+            mime="application/json"
+        )
+
+with col_comp3:
+    # Carregar rascunho salvo anteriormente
+    uploaded_backup = st.file_uploader("📂 Carregar Rascunho Salvo", type=["json"])
+    if uploaded_backup is not None:
+        try:
+            dados_carregados = json.load(uploaded_backup)
+            if isinstance(dados_carregados, list):
+                st.session_state.atendimentos = dados_carregados
+                st.success("Rascunho carregado com sucesso!")
+        except Exception as e:
+            st.error("Erro ao carregar o arquivo de backup.")
 
 st.markdown("---")
 
@@ -30,7 +53,6 @@ with col_form:
     cns_prof = st.text_input("CNS do Profissional", "702805644714369")
     
     st.markdown("---")
-    # CPF do Paciente e Nome da Mãe incluídos obrigatoriamente
     cpf_user = st.text_input("CPF do Paciente (Apenas números - 11 dígitos)", "", max_chars=11)
     nome_user = st.text_input("Nome do Paciente", "")
     nome_mae = st.text_input("Nome da Mãe do Paciente", "")
@@ -41,7 +63,6 @@ with col_form:
     municipio = st.text_input("Município IBGE (c/ dígito)", "3122450")
     logradouro = st.text_input("Logradouro (Ex: RUA APOLINARIO BORGES)", "")
     
-    # Serviço e Classificação SIGTAP
     col_serv, col_class = st.columns(2)
     with col_serv:
         servico = st.text_input("Serviço (3 dígitos)", "115")
@@ -67,7 +88,7 @@ with col_form:
                 novo_registro = {
                     "cnes": cnes, "cbo": cbo, "cns_prof": cns_prof, "dt_atend": dt_atend,
                     "nome_user": nome_user, "nome_mae": nome_mae, "cpf_user": cpf_limpo,
-                    "cns_user": "0".zfill(15), # CNS vai zerado quando se usa CPF
+                    "cns_user": "0".zfill(15),
                     "dt_nasc": dt_nasc, "sexo": sexo, "raca": raca, "cep": cep,
                     "municipio": municipio, "logradouro": logradouro, "cid": cid,
                     "servico": servico, "classificacao": classificacao,
@@ -118,7 +139,6 @@ with col_hist:
                 sub16_total += int(reg["procedimento"]) + int(reg["quantidade"])
                 sub15_total += int(reg["cnes"]) + int(reg["cns_user"])
                 
-                # Linha 15 (Folha do Paciente com CPF + Nome da Mãe + Serviço/Classificação)
                 linha15 = (
                     "15" + codigo_uf + ano_mes + reg["cnes"].zfill(7) + reg["cns_user"].zfill(15) + reg["dt_atend"].zfill(8) + 
                     "".ljust(8, ' ') + l15_nome + "0001".zfill(10) + "".ljust(30, ' ') + 
@@ -130,7 +150,6 @@ with col_hist:
                     "081" + "".ljust(40, ' ') + reg["cpf_user"].zfill(11) + "    "
                 )
                 
-                # Linha 16 (Procedimentos com CPF do Paciente)
                 linha16 = (
                     "16" + codigo_uf + ano_mes + reg["cnes"].zfill(7) + reg["cns_user"].zfill(15) + reg["dt_atend"].zfill(8) + 
                     reg["procedimento"].zfill(10) + reg["cbo"].zfill(6) + reg["cns_prof"].zfill(15) + reg["dt_atend"].zfill(8) + 
