@@ -5,7 +5,7 @@ from datetime import datetime
 
 st.set_page_config(page_title="Gerador RAAS-PS", layout="wide")
 
-st.title("🗂️ Gerador de Remessa RAAS-PS (DATASUS)")
+st.title("🗂️ Gerador de Remessa RAAS-DIVISOPOLIS (DATASUS)")
 
 if "atendimentos" not in st.session_state:
     st.session_state.atendimentos = []
@@ -132,7 +132,7 @@ st.markdown("---")
 col_form, col_hist = st.columns([1.3, 1])
 
 with col_form:
-    st.subheader("📝 Formulário de Digitação (Em Branco)")
+    st.subheader("📝 Formulário de Digitação")
     
     with st.form("form_registro", clear_on_submit=False):
         tab_p, tab_a, tab_r = st.tabs(["[ P ] Paciente", "[ A ] Atendimento", "[ R ] Procedimento"])
