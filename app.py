@@ -423,4 +423,8 @@ with col_hist:
             
             st.success("Remessa gerada com sucesso!")
             st.download_button(
-                label="📥 Baixar Arquivo Remessa
+                label="📥 Baixar Arquivo Remessa AA312245",
+                data=b_io,
+                file_name="AA312245",
+                mime="application/octet-stream"
+            )
