@@ -250,7 +250,7 @@ def verificar_senha():
             submit_login = st.form_submit_button("Entrar no Sistema", type="primary", use_container_width=True)
             
             if submit_login:
-                if usuario == "digitador" and senha == "raas2026":
+                if usuario == "digitador" and senha == "raas2027":
                     st.session_state.autenticado = True
                     st.session_state.usuario_logado = "digitador"
                     st.rerun()
