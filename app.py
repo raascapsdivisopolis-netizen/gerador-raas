@@ -448,4 +448,17 @@ with col_hist:
                 "01" + "#RAS#" + ano_mes + qtd_folhas_str + soma_ctrl + 
                 "SMS DIVISOPOLIS               ".ljust(30, ' ') + 
                 "SMS   ".ljust(6, ' ') + "66234311000123".zfill(14) + 
-                "SMS
+                "SMS DIVISOPOLIS                         ".ljust(40, ' ') + 
+                "M" + data_geracao + "02.35          " + sufixo_comp_b
+            )
+            
+            conteudo_final = cabecalho + "\r\n" + "\r\n".join(linhas_detalhe) + "\r\n"
+            b_io = io.BytesIO(conteudo_final.encode("cp1252", errors="ignore"))
+            
+            st.success("Remessa gerada com sucesso!")
+            st.download_button(
+                label="📥 Baixar Arquivo Remessa AA312245",
+                data=b_io,
+                file_name="AA312245",
+                mime="application/octet-stream"
+            )
