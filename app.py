@@ -113,7 +113,6 @@ TABELA_TIPO_LOGRADOURO = {
     "065 - PRACA": "065"
 }
 
-# Inverso para recuperar o tipo de logradouro ao editar
 INVERSO_TIPO_LOG = {v: k for k, v in TABELA_TIPO_LOGRADOURO.items() if v != ""}
 
 def converter_data_para_sigtap(data_str):
@@ -322,9 +321,9 @@ with col_form:
                     
                 col7, col8 = st.columns(2)
                 with col7:
-                    raca_atual = dados_edicao.get("raca", "")
+                    raca_atual = dados_edicao.get("raca", "03" if not dados_edicao else dados_edicao.get("raca", ""))
                     opcoes_raca = ["", "01 - Branca", "02 - Preta", "03 - Parda", "04 - Amarela", "05 - Indígena"]
-                    raca_idx = 0
+                    raca_idx = 3 # Padrão: 03 - Parda
                     for i, opt in enumerate(opcoes_raca):
                         if opt.startswith(raca_atual):
                             raca_idx = i
@@ -344,8 +343,7 @@ with col_form:
                 st.markdown("##### Endereço")
                 col11, col12, col13 = st.columns(3)
                 with col11:
-                    cep_val = dados_edicao.get("cep", "")
-                    cep_val = cep_val if cep_val != "00000000" else ""
+                    cep_val = dados_edicao.get("cep", "39912000" if not dados_edicao else dados_edicao.get("cep", "39912000"))
                     cep = st.text_input("CEP", cep_val, max_chars=8)
                 with col12:
                     mun_val = dados_edicao.get("municipio", "3122450")
@@ -370,14 +368,15 @@ with col_form:
                     
                 col17, col18, col19, col20 = st.columns(4)
                 with col17:
-                    complemento = st.text_input("Complemento", dados_edicao.get("complemento", "").strip())
+                    comp_val = dados_edicao.get("complemento", "CASA" if not dados_edicao else dados_edicao.get("complemento", "CASA")).strip()
+                    complemento = st.text_input("Complemento", comp_val)
                 with col18:
-                    cel_val = dados_edicao.get("tel_cel", "")
-                    cel_val = cel_val if cel_val != "00000000000" else ""
+                    cel_val = dados_edicao.get("tel_cel", "99999999999" if not dados_edicao else dados_edicao.get("tel_cel", "99999999999"))
+                    cel_val = cel_val if cel_val != "00000000000" else "99999999999"
                     tel_cel = st.text_input("Tel. Celular (11 dígitos)", cel_val, max_chars=11)
                 with col19:
-                    cont_val = dados_edicao.get("tel_contato", "")
-                    cont_val = cont_val if cont_val != "00000000000" else ""
+                    cont_val = dados_edicao.get("tel_contato", "99999999999" if not dados_edicao else dados_edicao.get("tel_contato", "99999999999"))
+                    cont_val = cont_val if cont_val != "00000000000" else "99999999999"
                     tel_contato = st.text_input("Tel. Contato (11 dígitos)", cont_val, max_chars=11)
                 with col20:
                     rua_atual = dados_edicao.get("situacao_rua", "")
@@ -432,8 +431,8 @@ with col_form:
                 st.markdown("##### Cobertura ESF")
                 col25, col26 = st.columns(2)
                 with col25:
-                    esf_atual = dados_edicao.get("cobertura_esf", "")
-                    esf_idx = ["", "N", "S"].index(esf_atual) if esf_atual in ["N", "S"] else 0
+                    esf_atual = dados_edicao.get("cobertura_esf", "S" if not dados_edicao else dados_edicao.get("cobertura_esf", "S"))
+                    esf_idx = ["", "N", "S"].index(esf_atual) if esf_atual in ["N", "S"] else 2 # Padrão: S
                     cobertura_esf = st.selectbox("Cobertura ESF?", ["", "N", "S"], index=esf_idx)
                 with col26:
                     cnes_esf = st.text_input("CNES USF", dados_edicao.get("cnes_esf", "2119811"), max_chars=7)
@@ -487,9 +486,9 @@ with col_form:
                     
                 col34, col35 = st.columns(2)
                 with col34:
-                    local_atual = dados_edicao.get("local_realizacao", "")
+                    local_atual = dados_edicao.get("local_realizacao", "C" if not dados_edicao else dados_edicao.get("local_realizacao", "C"))
                     opcoes_local = ["", "C - CAPS", "T - Território"]
-                    local_idx = 0
+                    local_idx = 1 # Padrão: C - CAPS
                     for i, opt in enumerate(opcoes_local):
                         if opt.startswith(local_atual):
                             local_idx = i
