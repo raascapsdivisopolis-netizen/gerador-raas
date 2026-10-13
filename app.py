@@ -6,38 +6,34 @@ import os
 
 st.set_page_config(page_title="Gerador RAAS-PS", layout="wide")
 
-# --- ESTILIZAÇÃO CSS PARA A TELA DE LOGIN ---
+# --- ESTILIZAÇÃO CSS COM EFEITO VITRIFICADO (GLASSMORPHISM) ---
 st.markdown("""
     <style>
-        /* Força a mesma largura e tamanho para os inputs do formulário de login */
+        /* Estilização dos inputs para ficarem idênticos, com tom amarelho suave e borda marrom */
         div[data-testid="stForm"] input {
-            background-color: #fffde7 !important;
+            background-color: rgba(255, 253, 231, 0.85) !important;
             border: 1px solid #795548 !important;
             color: #3e2723 !important;
             font-weight: 500;
+            width: 100% !important;
         }
         
-        /* Ajusta o campo de senha para alinhar perfeitamente com o usuário */
+        /* Força a mesma largura do container interno do campo de senha */
         div[data-testid="stForm"] div[data-baseweb="input"] {
             width: 100% !important;
         }
         
-        /* Centraliza e estiliza o card de login */
+        /* Card de login com efeito vitrificado (Glassmorphism) */
         div[data-testid="stForm"] {
             max-width: 420px;
             margin: 0 auto;
-            border-radius: 10px;
-            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.08);
-            border: 1px solid #e0e0e0;
+            background: rgba(255, 255, 255, 0.65) !important;
+            backdrop-filter: blur(10px) !important;
+            -webkit-backdrop-filter: blur(10px) !important;
+            border-radius: 14px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.4);
             padding: 30px;
-        }
-        
-        /* Centralizador para imagem de logo */
-        .logo-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 10px;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -93,7 +89,7 @@ CADASTRO_PROFISSIONAIS = {
     "ALANE DE OLIVEIRA MACEDO": {"cns": "700609921575863", "cbo": "322205"},
 }
 
-# --- SISTEMA DE LOGIN COM LOGO CENTRALIZADO ---
+# --- SISTEMA DE LOGIN COM EFEITO VITRIFICADO ---
 def verificar_senha():
     if "autenticado" not in st.session_state:
         st.session_state.autenticado = False
@@ -101,7 +97,7 @@ def verificar_senha():
     if st.session_state.autenticado:
         return True
 
-    # Busca a imagem com tolerancia para maiusculas/minusculas
+    # Busca a imagem com tolerância para maiúsculas/minúsculas
     caminho_logo = None
     for nome in ["logo.png", "Logo.png", "logo.jpg", "Logo.jpg"]:
         if os.path.exists(nome):
