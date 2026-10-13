@@ -60,7 +60,7 @@ with col_form:
                 
             col4, col5, col6 = st.columns(3)
             with col4:
-                nome_user = st.text_input("Nome do Paciente", "ISMEAL CESAR")
+                nome_user = st.text_input("Nome do Paciente", "ISMAEL CESAR")
             with col5:
                 sexo = st.selectbox("Sexo", ["M", "F"])
             with col6:
@@ -70,11 +70,11 @@ with col_form:
             with col7:
                 raca_opt = st.selectbox("Raça/Cor", ["01 - Branca", "02 - Preta", "03 - Parda", "04 - Amarela", "05 - Indígena"], index=3)
             with col8:
-                etnia = st.text_input("Etnia (2 dígitos)", "00", max_chars=2)
+                etnia = st.text_input("Etnia (4 dígitos - 0000 se não for indígena)", "0000", max_chars=4)
                 
             col9, col10 = st.columns(2)
             with col9:
-                nome_mae = st.text_input("Nome da Mãe", "NELAI MARIA")
+                nome_mae = st.text_input("Nome da Mãe", "NELIA MARIA")
             with col10:
                 nome_resp = st.text_input("Nome do Responsável", "APOLINARIO BORGES")
                 
@@ -89,9 +89,9 @@ with col_form:
                 
             col14, col15, col16 = st.columns(3)
             with col14:
-                tipo_log = st.text_input("Cód. Tipo Logradouro (3 dígitos)", "081", max_chars=3)
+                tipo_log = st.text_input("Cód. Tipo Logradouro (3 dígitos - ex: 081 ou 000)", "081", max_chars=3)
             with col15:
-                logradouro = st.text_input("Nome Logradouro", "APOLINARIO BORGES")
+                logradouro = st.text_input("Nome Logradouro", "RUA JOSE FERRAZ")
             with col16:
                 numero = st.text_input("Número", "00064", max_chars=5)
                 
@@ -184,7 +184,7 @@ with col_form:
                 novo_registro = {
                     "cnes": cnes.zfill(7), "prontuario": prontuario.zfill(10), "cpf_user": cpf_limpo,
                     "cns_user": cns_user.zfill(15), "nome_user": nome_user, "sexo": sexo,
-                    "dt_nasc": dt_nasc.zfill(8), "raca": raca_opt[:2], "etnia": etnia.zfill(2),
+                    "dt_nasc": dt_nasc.zfill(8), "raca": raca_opt[:2], "etnia": etnia.zfill(4),
                     "nome_mae": nome_mae, "nome_resp": nome_resp if nome_resp else nome_mae,
                     "cep": cep.zfill(8), "municipio": municipio.zfill(7), "bairro": bairro.ljust(30, ' ')[:30],
                     "tipo_log": tipo_log.zfill(3), "logradouro": logradouro.ljust(30, ' ')[:30],
@@ -237,99 +237,69 @@ with col_hist:
                 sub16_total += int(reg["procedimento"]) + int(reg["quantidade"])
                 sub15_total += int(reg["cnes"]) + int(int(reg["cpf_user"]) if reg["cpf_user"].isdigit() else 0)
                 
-                # Linha 15 perfeitamente alinhada sem vazamentos ou campos em branco
+                # LINHA 15 - Mapeada RIGOROSAMENTE conforme a tabela do PDF de ABRIL/2025
                 linha15 = (
-                    "15" +                                                 # 001-002
-                    codigo_uf +                                            # 003-004
-                    ano_mes +                                              # 005-010
-                    reg["cnes"] +                                          # 011-017
-                    reg["cns_user"] +                                      # 018-032
-                    reg["dt_admissao"] +                                   # 033-040
-                    "".ljust(8, ' ') +                                     # 041-048
-                    reg["nome_user"].ljust(30, ' ')[:30] +                 # 049-078
-                    reg["prontuario"] +                                    # 079-088
-                    reg["nome_mae"].ljust(30, ' ')[:30] +                  # 089-118
-                    reg["logradouro"] +                                    # 119-148
-                    reg["numero"] +                                        # 149-153
-                    reg["complemento"] +                                   # 154-163
-                    reg["cep"] +                                           # 164-171
-                    reg["municipio"] +                                     # 172-178
-                    reg["dt_nasc"] +                                       # 179-186
-                    reg["sexo"] +                                          # 187-187
-                    reg["raca"] +                                          # 188-189
-                    reg["nome_resp"].ljust(30, ' ')[:30] +                 # 190-219
-                    "105" +                                                # 220-222 (Código Brasil)
-                    reg["etnia"] +                                         # 223-226
-                    reg["tel_contato"] +                                   # 227-237
-                    reg["tel_cel"] +                                       # 238-248
-                    reg["destino_usuario"] +                               # 249-250
-                    reg["dt_conclusao"] +                                  # 251-258
-                    reg["cid_principal"] +                                 # 259-262
-                    "".ljust(4, ' ') +                                     # 263-266
-                    "".ljust(4, ' ') +                                     # 267-270
-                    "".ljust(4, ' ') +                                     # 271-274
-                    reg["cid_associado"] +                                 # 275-278
-                    reg["carater_atend"] +                                 # 279-280
-                    reg["origem_usuario"] +                                # 281-282
-                    reg["cobertura_esf"] +                                 # 283-283
-                    reg["cnes_esf"] +                                      # 284-290
-                    "00001" +                                              # 291-295
-                    reg["destino_usuario"] +                               # 296-297
-                    "RAS" +                                                # 298-300
-                    reg["situacao_rua"] +                                  # 301-301
-                    reg["usu_droga"] +                                     # 302-302
-                    reg["tipo_droga"] +                                    # 303-305
-                    "".ljust(13, ' ') +                                    # 306-318
-                    reg["bairro"] +                                        # 319-348
-                    reg["tipo_log"] +                                      # 349-351
-                    "".ljust(40, ' ') +                                    # 352-391
-                    reg["cpf_user"] +                                      # 392-402
-                    "".ljust(4, ' ')                                       # 403-406
+                    "15" +                                                 # 001-002 (2)  ras_codlinha_ad_corpo
+                    codigo_uf +                                            # 003-004 (2)  ras_coduf
+                    ano_mes +                                              # 005-010 (6)  ras_cmp
+                    reg["cnes"] +                                          # 011-017 (7)  ras_codcnes
+                    reg["cns_user"] +                                      # 018-032 (15) ras_cnspct
+                    reg["dt_admissao"] +                                   # 033-040 (8)  ras_dtiinval
+                    "".ljust(8, ' ') +                                     # 041-048 (8)  ras_dtfimval
+                    reg["nome_user"].ljust(30, ' ')[:30] +                 # 049-078 (30) ras_nomepcnte
+                    reg["prontuario"] +                                    # 079-088 (10) ras_npront
+                    reg["nome_mae"].ljust(30, ' ')[:30] +                  # 089-118 (30) ras_nomemae
+                    reg["logradouro"] +                                    # 119-148 (30) ras_logpcnte
+                    reg["numero"] +                                        # 149-153 (5)  ras_numpcnte
+                    reg["complemento"] +                                   # 154-163 (10) ras_cplpcnte
+                    reg["cep"] +                                           # 164-171 (8)  ras_ceppcnte
+                    reg["municipio"] +                                     # 172-178 (7)  ras_munpcnte
+                    reg["dt_nasc"] +                                       # 179-186 (8)  ras_datanascim
+                    reg["sexo"] +                                          # 187-187 (1)  ras_sexopcnte
+                    reg["raca"] +                                          # 188-189 (2)  ras_raca
+                    reg["nome_resp"].ljust(30, ' ')[:30] +                 # 190-219 (30) ras_nomeresp
+                    "105" +                                                # 220-222 (3)  ras_nascpcnte (105=Brasil)
+                    reg["etnia"] +                                         # 223-226 (4)  ras_etnia
+                    reg["tel_contato"] +                                   # 227-237 (11) ras_telefone
+                    reg["tel_cel"] +                                       # 238-248 (11) ras_celular
+                    reg["destino_usuario"] +                               # 249-250 (2)  ras_motsaida
+                    reg["dt_conclusao"] +                                  # 251-258 (8)  ras_dtobitoalta
+                    reg["cid_principal"] +                                 # 259-262 (4)  pap_cidp
+                    "".ljust(4, ' ') +                                     # 263-266 (4)  pap_cids1
+                    "".ljust(4, ' ') +                                     # 267-270 (4)  pap_cids2
+                    "".ljust(4, ' ') +                                     # 271-274 (4)  pap_cids3
+                    reg["cid_associado"] +                                 # 275-278 (4)  ras_cidca
+                    reg["carater_atend"] +                                 # 279-280 (2)  ras_CARATE
+                    reg["origem_usuario"] +                                # 281-282 (2)  ras_origempcn
+                    reg["cobertura_esf"] +                                 # 283-283 (1)  ras_cobertura_ESF
+                    reg["cnes_esf"] +                                      # 284-290 (7)  ras_cnes_esd
+                    "00001" +                                              # 291-295 (5)  ras_total_acoes
+                    reg["destino_usuario"] +                               # 296-297 (2)  ras_dest_paciente
+                    "RAS" +                                                # 298-300 (3)  ras_org
+                    reg["situacao_rua"] +                                  # 301-301 (1)  ras_situacao_rua
+                    reg["usu_droga"] +                                     # 302-302 (1)  ras_usu_droga
+                    reg["tipo_droga"] +                                    # 303-305 (3)  ras_usu_tipo_droga
+                    "".ljust(13, ' ') +                                    # 306-318 (13) ras_autorizacao
+                    reg["bairro"] +                                        # 319-348 (30) ras_bairro
+                    reg["tipo_log"] +                                      # 349-351 (3)  ras_cod_logradouro
+                    "".ljust(40, ' ') +                                    # 352-391 (40) ras_email
+                    reg["cpf_user"] +                                      # 392-402 (11) ras_cpfpct
+                    "".ljust(4, ' ')                                       # 403-406 (4)  ras_filler
                 )
                 
-                # Linha 16
+                # LINHA 16 - Procedimentos da Atenção Psicossocial
                 linha16 = (
-                    "16" +                                                 # 001-002
-                    codigo_uf +                                            # 003-004
-                    ano_mes +                                              # 005-010
-                    reg["cnes"] +                                          # 011-017
-                    reg["cns_user"] +                                      # 018-032
-                    reg["dt_admissao"] +                                   # 033-040
-                    reg["procedimento"] +                                  # 041-050
-                    reg["cbo"] +                                           # 051-056
-                    reg["cns_prof"] +                                      # 057-071
-                    reg["dt_atend"] +                                      # 072-079
-                    reg["servico"] +                                       # 080-082
-                    reg["classificacao"] +                                 # 083-085
-                    reg["quantidade"] +                                    # 086-091
-                    "RAS" +                                                # 092-094
-                    reg["local_realizacao"] +                              # 095-095
-                    reg["cpf_user"] +                                      # 096-106
-                    "".ljust(4, ' ')                                       # 107-110
-                )
-                
-                linhas_detalhe.append(linha15)
-                linhas_detalhe.append(linha16)
-            
-            soma_ctrl = str(1111 + ((sub16_total + sub15_total) % 1111)).zfill(4)
-            qtd_folhas_str = str(total_digitados).zfill(6)
-            sufixo_comp_b = f"{ano_mes}b"
-            
-            cabecalho = (
-                "01" + "#RAS#" + ano_mes + qtd_folhas_str + soma_ctrl + 
-                "SMS DIVISOPOLIS               ".ljust(30, ' ') + 
-                "SMS   ".ljust(6, ' ') + "66234311000123".zfill(14) + 
-                "SMS DIVISOPOLIS                         ".ljust(40, ' ') + 
-                "M" + data_geracao + "02.35          " + sufixo_comp_b
-            )
-            
-            conteudo_final = cabecalho + "\r\n" + "\r\n".join(linhas_detalhe) + "\r\n"
-            b_io = io.BytesIO(conteudo_final.encode("cp1252", errors="ignore"))
-            
-            st.success("Remessa gerada com sucesso!")
-            st.download_button(
-                label="📥 Baixar Arquivo Remessa AA312245",
-                data=b_io,
-                file_name="AA312245",
-                mime="application/octet-stream"
-            )
+                    "16" +                                                 # 001-002 (2)
+                    codigo_uf +                                            # 003-004 (2)
+                    ano_mes +                                              # 005-010 (6)
+                    reg["cnes"] +                                          # 011-017 (7)
+                    reg["cns_user"] +                                      # 018-032 (15)
+                    reg["dt_admissao"] +                                   # 033-040 (8)
+                    reg["procedimento"] +                                  # 041-050 (10)
+                    reg["cbo"] +                                           # 051-056 (6)
+                    reg["cns_prof"] +                                      # 057-071 (15)
+                    reg["dt_atend"] +                                      # 072-079 (8)
+                    reg["servico"] +                                       # 080-082 (3)
+                    reg["classificacao"] +                                 # 083-085 (3)
+                    reg["quantidade"] +                                    # 086-091 (6)
+                    "RAS" +                                                # 092-09
