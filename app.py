@@ -9,7 +9,7 @@ st.title("🗂️ Gerador de Remessa RAAS-PS (DATASUS)")
 if "atendimentos" not in st.session_state:
     st.session_state.atendimentos = []
 
-# --- CADASTRO INTELIGENTE DE PROFISSIONAIS (Atualizado com os dados da unidade) ---
+# --- CADASTRO INTELIGENTE DE PROFISSIONAIS ---
 CADASTRO_PROFISSIONAIS = {
     "Selecione o Profissional...": {"cns": "000000000000000", "cbo": "000000"},
     "SUELY DE JESUS SILVA": {"cns": "701006885473793", "cbo": "239415"},
@@ -227,6 +227,7 @@ with col_form:
             with col36:
                 local_realizacao = st.selectbox("Local Realização", ["C - CAPS", "T - Território"], index=0)
 
+        # O botão de envio fica posicionado ao final, aparecendo exclusivamente na última aba
         submitted = st.form_submit_button("➕ Adicionar Lançamento ao Lote", type="primary")
         
         if submitted:
