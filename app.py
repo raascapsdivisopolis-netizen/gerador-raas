@@ -4,7 +4,8 @@ import json
 from datetime import datetime
 import os
 import pandas as pd
-from st_gsheets_connection import GSheetsConnection
+import gspread
+from google.oauth2.service_account import Credentials
 
 st.set_page_config(page_title="Gerador RAAS-PS", layout="wide")
 
@@ -20,11 +21,39 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- CONEXÃO COM O GOOGLE SHEETS ---
-try:
-    conn = st.connection("gsheets", type=GSheetsConnection)
-except Exception as e:
-    conn = None
+# --- CONEXÃO COM O GOOGLE SHEETS VIA GSPREAD ---
+def conectar_gsheets():
+    try:
+        if "connections" in st.secrets and "gsheets" in st.secrets["connections"]:
+            sec = st.secrets["connections"]["gsheets"]
+            scope = [
+                "https://www.googleapis.com/auth/spreadsheets",
+                "https://www.googleapis.com/auth/drive"
+            ]
+            cred_dict = {
+                "type": sec.get("type", "service_account"),
+                "project_id": sec.get("project_id"),
+                "private_key_id": sec.get("private_key_id"),
+                "private_key": sec.get("private_key").replace("\\n", "\n"),
+                "client_email": sec.get("client_email"),
+                "client_id": sec.get("client_id"),
+                "auth_uri": sec.get("auth_uri", "https://accounts.google.com/o/oauth2/auth"),
+                "token_uri": sec.get("token_uri", "https://oauth2.googleapis.com/token"),
+                "auth_provider_x509_cert_url": sec.get("auth_provider_x509_cert_url", "https://www.googleapis.com/oauth2/v1/certs"),
+                "client_x509_cert_url": sec.get("client_x509_cert_url")
+            }
+            creds = Credentials.from_service_account_info(cred_dict, scopes=scope)
+            client = gspread.authorize(creds)
+            
+            # Abre a planilha pelo link fornecido nos segredos
+            sheet_url = sec.get("spreadsheet")
+            sheet = client.open_by_url(sheet_url).sheet1
+            return sheet
+    except Exception:
+        pass
+    return None
+
+sheet_conn = conectar_gsheets()
 
 if "usuario_logado" not in st.session_state:
     st.session_state.usuario_logado = ""
@@ -34,19 +63,41 @@ if "digitação_habilitada" not in st.session_state:
 
 # --- CARREGA DADOS DO BANCO ONLINE (GOOGLE SHEETS) ---
 def carregar_atendimentos():
-    if conn is not None:
+    if sheet_conn is not None:
         try:
-            df = conn.read(ttl=0)
-            if df is not None and not df.empty:
-                # Remove linhas totalmente vazias se houverem
-                df = df.dropna(how="all")
-                return df.fillna("").to_dict(orient="records")
+            dados = sheet_conn.get_all_records()
+            if dados:
+                return dados
         except Exception:
             pass
     return []
 
 if "atendimentos" not in st.session_state:
     st.session_state.atendimentos = carregar_atendimentos()
+
+# --- FUNÇÃO PARA SALVAR NO GOOGLE SHEETS ---
+def salvar_no_sheets():
+    if sheet_conn is not None:
+        try:
+            sheet_conn.clear()
+            if st.session_state.atendimentos:
+                df = pd.DataFrame(st.session_state.atendimentos)
+                # Garante que todas as colunas essenciais existam
+                colunas_base = [
+                    "cnes", "prontuario", "cpf_user", "cns_user", "nome_user", "sexo", "dt_nasc", "raca", "etnia", 
+                    "nome_mae", "nome_resp", "cep", "municipio", "bairro", "tipo_log", "logradouro", "numero", 
+                    "complemento", "tel_cel", "tel_contato", "situacao_rua", "dt_admissao", "carater_atend", 
+                    "origem_usuario", "cid_principal", "cid_associado", "usu_droga", "tipo_droga", "cobertura_esf", 
+                    "cnes_esf", "destino_usuario", "dt_conclusao", "dt_atend", "procedimento", "quantidade", 
+                    "servico", "classificacao", "cns_prof", "cbo", "local_realizacao", "competencia"
+                ]
+                for col in colunas_base:
+                    if col not in df.columns:
+                        df[col] = ""
+                df = df[colunas_base]
+                sheet_conn.update([df.columns.values.tolist()] + df.fillna("").values.tolist())
+        except Exception:
+            pass
 
 # --- TABELA OFICIAL DE TIPOS DE LOGRADOURO ---
 TABELA_TIPO_LOGRADOURO = {
@@ -203,7 +254,8 @@ with col_comp3:
             dados_carregados = json.load(uploaded_backup)
             if isinstance(dados_carregados, list):
                 st.session_state.atendimentos = dados_carregados
-                st.success("Rascunho carregado com sucesso!")
+                salvar_no_sheets()
+                st.success("Rascunho carregado e sincronizado com sucesso!")
         except Exception:
             st.error("Erro ao carregar backup.")
 
@@ -422,14 +474,7 @@ with col_form:
                     }
                     
                     st.session_state.atendimentos.append(novo_registro)
-                    
-                    # Salva automaticamente na planilha do Google Sheets com tratamento de erro
-                    if conn is not None:
-                        try:
-                            df_atualizado = pd.DataFrame(st.session_state.atendimentos)
-                            conn.update(data=df_atualizado)
-                        except Exception as e:
-                            st.error(f"Erro ao salvar na planilha online: {e}")
+                    salvar_no_sheets()
                             
                     st.success(f"Atendimento de {novo_registro['nome_user']} adicionado e salvo online com sucesso!")
                     st.rerun()
@@ -455,12 +500,7 @@ with col_hist:
                 st.write(f"**CID:** {reg['cid_principal']} | **Mãe:** {reg['nome_mae']}")
                 if st.button("🗑️ Excluir este lançamento", key=f"del_{idx}"):
                     st.session_state.atendimentos.pop(idx)
-                    if conn is not None:
-                        try:
-                            df_atualizado = pd.DataFrame(st.session_state.atendimentos)
-                            conn.update(data=df_atualizado if not df_atualizado.empty else pd.DataFrame(columns=["cnes"]))
-                        except Exception:
-                            pass
+                    salvar_no_sheets()
                     st.rerun()
 
     st.markdown("---")
