@@ -138,7 +138,8 @@ with col_form:
         tab_p, tab_a, tab_r = st.tabs(["[ P ] Paciente", "[ A ] Atendimento", "[ R ] Procedimento"])
         
         with tab_p:
-            cnes = st.text_input("CNES Executante", "2119811", max_chars=7)
+            # CNES atualizado para 7500238
+            cnes = st.text_input("CNES Executante", "7500238", max_chars=7)
             
             col1, col2, col3 = st.columns(3)
             with col1:
@@ -315,7 +316,6 @@ with col_form:
                     if "Outras" in tipo_droga_opt: str_droga += "O"
                 str_droga = str_droga.ljust(3, ' ')[:3]
                 
-                # Tratamento de CPF e CNS (se CPF estiver vazio, usa CNS preenchido, e vice-versa)
                 cpf_final = cpf_limpo if len(cpf_limpo) == 11 else "00000000000"
                 cns_final = cns_user.strip().zfill(15) if not cpf_limpo or len(cpf_limpo) != 11 else "000000000000000"
 
@@ -423,8 +423,4 @@ with col_hist:
             
             st.success("Remessa gerada com sucesso!")
             st.download_button(
-                label="📥 Baixar Arquivo Remessa AA312245",
-                data=b_io,
-                file_name="AA312245",
-                mime="application/octet-stream"
-            )
+                label="📥 Baixar Arquivo Remessa
