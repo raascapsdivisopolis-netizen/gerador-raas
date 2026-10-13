@@ -16,7 +16,7 @@ CADASTRO_PROFISSIONAIS = {
     "Psicólogo(a) - Exemplo": {"cns": "702805644714369", "cbo": "251510"},
     "Enfermeiro(a) - Exemplo": {"cns": "700000000000002", "cbo": "223505"},
     "Médico(a) Psiquiatra - Exemplo": {"cns": "700000000000003", "cbo": "225125"},
-    "Assistente Social - Exemplo": {"cns": "700000000000004", "cbo": "251605"},
+    "ALANE DE OLIVEIRA MACEDO - Tecnico de enfermagem": {"cns": "700609921575863", "cbo": "322205"},
 }
 
 # --- SISTEMA DE LOGIN SIMPLES ---
