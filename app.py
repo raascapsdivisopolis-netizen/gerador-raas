@@ -13,7 +13,7 @@ if "atendimentos" not in st.session_state:
 # Edite ou adicione os profissionais da sua unidade aqui:
 CADASTRO_PROFISSIONAIS = {
     "Selecione o Profissional...": {"cns": "000000000000000", "cbo": "000000"},
-    "Psicólogo(a) - Exemplo": {"cns": "702805644714369", "cbo": "251510"},
+    "ALANE DE OLIVEIRA MACEDO  - Téc de Enfermagem": {"cns": "700609921575863", "cbo": "322205"},
     "Enfermeiro(a) - Exemplo": {"cns": "700000000000002", "cbo": "223505"},
     "Médico(a) Psiquiatra - Exemplo": {"cns": "700000000000003", "cbo": "225125"},
     "Assistente Social - Exemplo": {"cns": "700000000000004", "cbo": "251605"},
