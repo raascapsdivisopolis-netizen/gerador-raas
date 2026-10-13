@@ -159,7 +159,7 @@ with col_form:
             with col34:
                 cns_prof = st.text_input("CNS Profissional (15 dígitos)", "702805644714369", max_chars=15)
             with col35:
-                cbo = st.text_input("CBO Profissional (6 dígitos)", "225142", max_chars=6)
+                cbo = st.text_input("CBO Profissional (6 dígitos)", "322230", max_chars=6)
             with col36:
                 local_realizacao = st.selectbox("Local Realização", ["C - CAPS", "T - Território"], index=0)
 
