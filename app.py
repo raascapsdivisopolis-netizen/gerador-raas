@@ -302,4 +302,34 @@ with col_hist:
                     reg["servico"] +                                       # 080-082 (3)
                     reg["classificacao"] +                                 # 083-085 (3)
                     reg["quantidade"] +                                    # 086-091 (6)
-                    "RAS" +                                                # 092-09
+                    "RAS" +                                                # 092-094 (3)
+                    reg["local_realizacao"] +                              # 095-095 (1)
+                    reg["cpf_user"] +                                      # 096-106 (11)
+                    "".ljust(4, ' ')                                       # 107-110 (4)
+                )
+                
+                linhas_detalhe.append(linha15)
+                linhas_detalhe.append(linha16)
+            
+            soma_ctrl = str(1111 + ((sub16_total + sub15_total) % 1111)).zfill(4)
+            qtd_folhas_str = str(total_digitados).zfill(6)
+            sufixo_comp_b = f"{ano_mes}b"
+            
+            cabecalho = (
+                "01" + "#RAS#" + ano_mes + qtd_folhas_str + soma_ctrl + 
+                "SMS DIVISOPOLIS               ".ljust(30, ' ') + 
+                "SMS   ".ljust(6, ' ') + "66234311000123".zfill(14) + 
+                "SMS DIVISOPOLIS                         ".ljust(40, ' ') + 
+                "M" + data_geracao + "02.35          " + sufixo_comp_b
+            )
+            
+            conteudo_final = cabecalho + "\r\n" + "\r\n".join(linhas_detalhe) + "\r\n"
+            b_io = io.BytesIO(conteudo_final.encode("cp1252", errors="ignore"))
+            
+            st.success("Remessa gerada com sucesso!")
+            st.download_button(
+                label="📥 Baixar Arquivo Remessa AA312245",
+                data=b_io,
+                file_name="AA312245",
+                mime="application/octet-stream"
+            )
