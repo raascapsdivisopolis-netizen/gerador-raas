@@ -45,7 +45,6 @@ def conectar_gsheets():
             creds = Credentials.from_service_account_info(cred_dict, scopes=scope)
             client = gspread.authorize(creds)
             
-            # Abre a planilha pelo link fornecido nos segredos
             sheet_url = sec.get("spreadsheet")
             sheet = client.open_by_url(sheet_url).sheet1
             return sheet
@@ -60,6 +59,9 @@ if "usuario_logado" not in st.session_state:
 
 if "digitação_habilitada" not in st.session_state:
     st.session_state.digitação_habilitada = True
+
+if "editando_idx" not in st.session_state:
+    st.session_state.editando_idx = None
 
 # --- CARREGA DADOS DO BANCO ONLINE (GOOGLE SHEETS) ---
 def carregar_atendimentos():
@@ -82,7 +84,6 @@ def salvar_no_sheets():
             sheet_conn.clear()
             if st.session_state.atendimentos:
                 df = pd.DataFrame(st.session_state.atendimentos)
-                # Garante que todas as colunas essenciais existam
                 colunas_base = [
                     "cnes", "prontuario", "cpf_user", "cns_user", "nome_user", "sexo", "dt_nasc", "raca", "etnia", 
                     "nome_mae", "nome_resp", "cep", "municipio", "bairro", "tipo_log", "logradouro", "numero", 
@@ -112,7 +113,9 @@ TABELA_TIPO_LOGRADOURO = {
     "065 - PRACA": "065"
 }
 
-# --- FUNÇÃO AUXILIAR PARA VALIDAR E CONVERTER DATAS DE DDMMAAAA PARA AAAAMMDD ---
+# Inverso para recuperar o tipo de logradouro ao editar
+INVERSO_TIPO_LOG = {v: k for k, v in TABELA_TIPO_LOGRADOURO.items() if v != ""}
+
 def converter_data_para_sigtap(data_str):
     limpa = ''.join(filter(str.isdigit, data_str))
     if len(limpa) == 8:
@@ -127,6 +130,11 @@ def converter_data_para_sigtap(data_str):
     except ValueError:
         return None
 
+def formatar_data_para_exibicao(data_aaaammdd):
+    if data_aaaammdd and len(str(data_aaaammdd)) == 8 and str(data_aaaammdd).isdigit():
+        return f"{data_aaaammdd[6:8]}{data_aaaammdd[4:6]}{data_aaaammdd[0:4]}"
+    return str(data_aaaammdd)
+
 # --- CADASTRO INTELIGENTE DE PROFISSIONAIS ---
 CADASTRO_PROFISSIONAIS = {
     "Selecione o Profissional...": {"cns": "", "cbo": ""},
@@ -140,6 +148,8 @@ CADASTRO_PROFISSIONAIS = {
     "ALINE ALVES DE OLIVEIRA": {"cns": "708101591625938", "cbo": "422105"},
     "ALANE DE OLIVEIRA MACEDO": {"cns": "700609921575863", "cbo": "322205"},
 }
+
+INVERSO_PROFISSIONAIS = {v["cns"]: k for k, v in CADASTRO_PROFISSIONAIS.items() if v["cns"] != ""}
 
 # --- SISTEMA DE LOGIN ---
 def verificar_senha():
@@ -212,6 +222,7 @@ with st.sidebar:
     if st.button("🚪 Sair do Sistema"):
         st.session_state.autenticado = False
         st.session_state.usuario_logado = ""
+        st.session_state.editando_idx = None
         st.rerun()
 
 # ==========================================
@@ -263,8 +274,19 @@ st.markdown("---")
 
 col_form, col_hist = st.columns([1.3, 1])
 
+# Carrega dados para preenchimento se estiver editando
+dados_edicao = {}
+if st.session_state.editando_idx is not None and 0 <= st.session_state.editando_idx < len(st.session_state.atendimentos):
+    dados_edicao = st.session_state.atendimentos[st.session_state.editando_idx]
+
 with col_form:
-    st.subheader("📝 Cadastro de paciente e atendimento")
+    if st.session_state.editando_idx is not None:
+        st.subheader(f"✏️ Editando Atendimento (Registro #{st.session_state.editando_idx + 1})")
+        if st.button("❌ Cancelar Edição"):
+            st.session_state.editando_idx = None
+            st.rerun()
+    else:
+        st.subheader("📝 Cadastro de paciente e atendimento")
     
     if not st.session_state.digitação_habilitada:
         st.warning("🔒 **Atenção:** O prazo de digitação foi encerrado pelo Administrador. Novos cadastros estão desabilitados no momento.")
@@ -273,104 +295,175 @@ with col_form:
             tab_p, tab_a, tab_r = st.tabs(["[ P ] Paciente", "[ A ] Atendimento", "[ R ] Procedimento"])
             
             with tab_p:
-                cnes = st.text_input("CNES Executante", "7500238", max_chars=7)
+                cnes = st.text_input("CNES Executante", dados_edicao.get("cnes", "7500238"), max_chars=7)
                 
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    prontuario = st.text_input("Prontuário (Opcional)", "", max_chars=10)
+                    prontuario = st.text_input("Prontuário (Opcional)", dados_edicao.get("prontuario", "").strip().lstrip("0"), max_chars=10)
                 with col2:
-                    cpf_user = st.text_input("CPF do Paciente (11 dígitos)", "", max_chars=11)
+                    cpf_digitado = dados_edicao.get("cpf_user", "")
+                    cpf_val = cpf_digitado if cpf_digitado != "00000000000" else ""
+                    cpf_user = st.text_input("CPF do Paciente (11 dígitos)", cpf_val, max_chars=11)
                 with col3:
-                    cns_user = st.text_input("CNS do Paciente (ou Zeros)", "", max_chars=15)
+                    cns_digitado = dados_edicao.get("cns_user", "")
+                    cns_val = cns_digitado if not cns_digitado.startswith("000000000000") else ""
+                    cns_user = st.text_input("CNS do Paciente (ou Zeros)", cns_val, max_chars=15)
                     
                 col4, col5, col6 = st.columns(3)
                 with col4:
-                    nome_user = st.text_input("Nome do Paciente", "")
+                    nome_user = st.text_input("Nome do Paciente", dados_edicao.get("nome_user", ""))
                 with col5:
-                    sexo = st.selectbox("Sexo", ["", "M", "F"])
+                    sexo_atual = dados_edicao.get("sexo", "")
+                    sexo_idx = ["", "M", "F"].index(sexo_atual) if sexo_atual in ["M", "F"] else 0
+                    sexo = st.selectbox("Sexo", ["", "M", "F"], index=sexo_idx)
                 with col6:
-                    dt_nasc = st.text_input("Data Nascimento (DDMMAAAA)", "", max_chars=10)
+                    dt_nasc_val = formatar_data_para_exibicao(dados_edicao.get("dt_nasc", ""))
+                    dt_nasc = st.text_input("Data Nascimento (DDMMAAAA)", dt_nasc_val, max_chars=10)
                     
                 col7, col8 = st.columns(2)
                 with col7:
-                    raca_opt = st.selectbox("Raça/Cor", ["", "01 - Branca", "02 - Preta", "03 - Parda", "04 - Amarela", "05 - Indígena"])
+                    raca_atual = dados_edicao.get("raca", "")
+                    opcoes_raca = ["", "01 - Branca", "02 - Preta", "03 - Parda", "04 - Amarela", "05 - Indígena"]
+                    raca_idx = 0
+                    for i, opt in enumerate(opcoes_raca):
+                        if opt.startswith(raca_atual):
+                            raca_idx = i
+                            break
+                    raca_opt = st.selectbox("Raça/Cor", opcoes_raca, index=raca_idx)
                 with col8:
-                    etnia = st.text_input("Etnia (4 dígitos - Opcional)", "", max_chars=4)
+                    etnia_val = dados_edicao.get("etnia", "")
+                    etnia_val = etnia_val if etnia_val != "0000" else ""
+                    etnia = st.text_input("Etnia (4 dígitos - Opcional)", etnia_val, max_chars=4)
                     
                 col9, col10 = st.columns(2)
                 with col9:
-                    nome_mae = st.text_input("Nome da Mãe", "")
+                    nome_mae = st.text_input("Nome da Mãe", dados_edicao.get("nome_mae", ""))
                 with col10:
-                    nome_resp = st.text_input("Nome do Responsável", "")
+                    nome_resp = st.text_input("Nome do Responsável", dados_edicao.get("nome_resp", ""))
                     
                 st.markdown("##### Endereço")
                 col11, col12, col13 = st.columns(3)
                 with col11:
-                    cep = st.text_input("CEP", "", max_chars=8)
+                    cep_val = dados_edicao.get("cep", "")
+                    cep_val = cep_val if cep_val != "00000000" else ""
+                    cep = st.text_input("CEP", cep_val, max_chars=8)
                 with col12:
-                    municipio = st.text_input("Município IBGE (c/ DV)", "", max_chars=7)
+                    mun_val = dados_edicao.get("municipio", "3122450")
+                    municipio = st.text_input("Município IBGE (c/ DV)", mun_val, max_chars=7)
                 with col13:
-                    bairro = st.text_input("Bairro", "")
+                    bairro_val = dados_edicao.get("bairro", "").strip()
+                    bairro = st.text_input("Bairro", bairro_val)
                     
                 col14, col15, col16 = st.columns(3)
                 with col14:
-                    tipo_log_selecionado = st.selectbox("Tipo de Logradouro", list(TABELA_TIPO_LOGRADOURO.keys()))
+                    tipo_log_atual = dados_edicao.get("tipo_log", "")
+                    nome_tipo_log_salvo = INVERSO_TIPO_LOG.get(tipo_log_atual, "Selecione o Tipo...")
+                    chaves_log = list(TABELA_TIPO_LOGRADOURO.keys())
+                    log_idx = chaves_log.index(nome_tipo_log_salvo) if nome_tipo_log_salvo in chaves_log else 0
+                    tipo_log_selecionado = st.selectbox("Tipo de Logradouro", chaves_log, index=log_idx)
                     codigo_tipo_log = TABELA_TIPO_LOGRADOURO[tipo_log_selecionado]
                 with col15:
-                    logradouro = st.text_input("Nome Logradouro", "")
+                    logradouro = st.text_input("Nome Logradouro", dados_edicao.get("logradouro", "").strip())
                 with col16:
-                    numero = st.text_input("Número", "", max_chars=5)
+                    num_val = dados_edicao.get("numero", "").strip().lstrip("0")
+                    numero = st.text_input("Número", num_val, max_chars=5)
                     
                 col17, col18, col19, col20 = st.columns(4)
                 with col17:
-                    complemento = st.text_input("Complemento", "")
+                    complemento = st.text_input("Complemento", dados_edicao.get("complemento", "").strip())
                 with col18:
-                    tel_cel = st.text_input("Tel. Celular (11 dígitos)", "", max_chars=11)
+                    cel_val = dados_edicao.get("tel_cel", "")
+                    cel_val = cel_val if cel_val != "00000000000" else ""
+                    tel_cel = st.text_input("Tel. Celular (11 dígitos)", cel_val, max_chars=11)
                 with col19:
-                    tel_contato = st.text_input("Tel. Contato (11 dígitos)", "", max_chars=11)
+                    cont_val = dados_edicao.get("tel_contato", "")
+                    cont_val = cont_val if cont_val != "00000000000" else ""
+                    tel_contato = st.text_input("Tel. Contato (11 dígitos)", cont_val, max_chars=11)
                 with col20:
-                    situacao_rua = st.selectbox("Em Situação de Rua?", ["", "N", "S"])
+                    rua_atual = dados_edicao.get("situacao_rua", "")
+                    rua_idx = ["", "N", "S"].index(rua_atual) if rua_atual in ["N", "S"] else 0
+                    situacao_rua = st.selectbox("Em Situação de Rua?", ["", "N", "S"], index=rua_idx)
 
             with tab_a:
                 col21, col22, col22b = st.columns(3)
                 with col21:
-                    dt_admissao = st.text_input("Data Admissão (DDMMAAAA)", "", max_chars=10)
+                    dt_adm_val = formatar_data_para_exibicao(dados_edicao.get("dt_admissao", ""))
+                    dt_admissao = st.text_input("Data Admissão (DDMMAAAA)", dt_adm_val, max_chars=10)
                 with col22:
-                    carater_opt = st.selectbox("Caráter Atendimento", ["", "01 - Eletivo", "02 - Urgência"])
+                    carater_atual = dados_edicao.get("carater_atend", "")
+                    opcoes_carater = ["", "01 - Eletivo", "02 - Urgência"]
+                    carater_idx = 0
+                    for i, opt in enumerate(opcoes_carater):
+                        if opt.startswith(carater_atual):
+                            carater_idx = i
+                            break
+                    carater_opt = st.selectbox("Caráter Atendimento", opcoes_carater, index=carater_idx)
                 with col22b:
-                    origem_opt = st.selectbox("Origem do Usuário", ["", "01 - Demanda Espontânea", "02 - Atenção Básica", "03 - Urgência", "04 - Outro CAPS"])
+                    origem_atual = dados_edicao.get("origem_usuario", "")
+                    opcoes_origem = ["", "01 - Demanda Espontânea", "02 - Atenção Básica", "03 - Urgência", "04 - Outro CAPS"]
+                    origem_idx = 0
+                    for i, opt in enumerate(opcoes_origem):
+                        if opt.startswith(origem_atual):
+                            origem_idx = i
+                            break
+                    origem_opt = st.selectbox("Origem do Usuário", opcoes_origem, index=origem_idx)
                     
                 col23, col24 = st.columns(2)
                 with col23:
-                    cid_principal = st.text_input("CID Principal (Ex: F411)", "", max_chars=4)
+                    cid_principal = st.text_input("CID Principal (Ex: F411)", dados_edicao.get("cid_principal", "").strip(), max_chars=4)
                 with col24:
-                    cid_associado = st.text_input("CID Causas Associadas (Opcional)", "", max_chars=4)
+                    cid_assoc_val = dados_edicao.get("cid_associado", "").strip()
+                    cid_associado = st.text_input("CID Causas Associadas (Opcional)", cid_assoc_val, max_chars=4)
                     
                 st.markdown("##### Usuário de Álcool/Drogas")
                 col_d1, col_d2 = st.columns(2)
                 with col_d1:
-                    usu_droga = st.selectbox("Usuário de Drogas?", ["", "N", "S"])
+                    droga_atual = dados_edicao.get("usu_droga", "")
+                    droga_idx = ["", "N", "S"].index(droga_atual) if droga_atual in ["N", "S"] else 0
+                    usu_droga = st.selectbox("Usuário de Drogas?", ["", "N", "S"], index=droga_idx)
                 with col_d2:
-                    tipo_droga_opt = st.multiselect("Tipos", ["Álcool", "Crack", "Outras"])
+                    tipo_drogas_salvo = dados_edicao.get("tipo_droga", "")
+                    lista_tipos_padrao = []
+                    if "A" in tipo_drogas_salvo: lista_tipos_padrao.append("Álcool")
+                    if "C" in tipo_drogas_salvo: lista_tipos_padrao.append("Crack")
+                    if "O" in tipo_drogas_salvo: lista_tipos_padrao.append("Outras")
+                    tipo_droga_opt = st.multiselect("Tipos", ["Álcool", "Crack", "Outras"], default=lista_tipos_padrao)
 
                 st.markdown("##### Cobertura ESF")
                 col25, col26 = st.columns(2)
                 with col25:
-                    cobertura_esf = st.selectbox("Cobertura ESF?", ["", "N", "S"])
+                    esf_atual = dados_edicao.get("cobertura_esf", "")
+                    esf_idx = ["", "N", "S"].index(esf_atual) if esf_atual in ["N", "S"] else 0
+                    cobertura_esf = st.selectbox("Cobertura ESF?", ["", "N", "S"], index=esf_idx)
                 with col26:
-                    cnes_esf = st.text_input("CNES USF", "2119811", max_chars=7)
+                    cnes_esf = st.text_input("CNES USF", dados_edicao.get("cnes_esf", "2119811"), max_chars=7)
                     
                 col27, col28 = st.columns(2)
                 with col27:
-                    destino_opt = st.selectbox("Destino Usuário", ["", "00 - Permanência", "01 - Continuidade Outro CAPS", "02 - Continuidade AB", "03 - Alta"])
+                    destino_atual = dados_edicao.get("destino_usuario", "")
+                    opcoes_destino = ["", "00 - Permanência", "01 - Continuidade Outro CAPS", "02 - Continuidade AB", "03 - Alta"]
+                    destino_idx = 0
+                    for i, opt in enumerate(opcoes_destino):
+                        if opt.startswith(destino_atual):
+                            destino_idx = i
+                            break
+                    destino_opt = st.selectbox("Destino Usuário", opcoes_destino, index=destino_idx)
                 with col28:
-                    dt_conclusao = st.text_input("Data Conclusão/Alta (DDMMAAAA - Opcional)", "", max_chars=10)
+                    dt_conc_val = dados_edicao.get("dt_conclusao", "")
+                    dt_conc_val = formatar_data_para_exibicao(dt_conc_val) if dt_conc_val.strip() else ""
+                    dt_conclusao = st.text_input("Data Conclusão/Alta (DDMMAAAA - Opcional)", dt_conc_val, max_chars=10)
 
             with tab_r:
                 st.markdown("##### Selecione o Profissional")
+                cns_prof_salvo = dados_edicao.get("cns_prof", "")
+                nome_prof_salvo = INVERSO_PROFISSIONAIS.get(cns_prof_salvo, "Selecione o Profissional...")
+                chaves_prof = list(CADASTRO_PROFISSIONAIS.keys())
+                prof_idx = chaves_prof.index(nome_prof_salvo) if nome_prof_salvo in chaves_prof else 0
+
                 prof_selecionado = st.selectbox(
                     "Profissional Executante", 
-                    list(CADASTRO_PROFISSIONAIS.keys()),
+                    chaves_prof,
+                    index=prof_idx,
                     key="select_profissional"
                 )
                 
@@ -378,23 +471,33 @@ with col_form:
                 
                 col29, col30 = st.columns(2)
                 with col29:
-                    dt_atend = st.text_input("Data do Procedimento (DDMMAAAA)", "", max_chars=10)
+                    dt_atend_val = formatar_data_para_exibicao(dados_edicao.get("dt_atend", ""))
+                    dt_atend = st.text_input("Data do Procedimento (DDMMAAAA)", dt_atend_val, max_chars=10)
                 with col30:
-                    procedimento = st.text_input("Procedimento SIGTAP (10 dígitos)", "", max_chars=10)
+                    procedimento = st.text_input("Procedimento SIGTAP (10 dígitos)", dados_edicao.get("procedimento", ""), max_chars=10)
                     
                 col31, col32, col33 = st.columns(3)
                 with col31:
-                    quantidade = st.text_input("Quantidade", "", max_chars=6)
+                    qtd_val = dados_edicao.get("quantidade", "").strip().lstrip("0")
+                    quantidade = st.text_input("Quantidade", qtd_val if qtd_val else "", max_chars=6)
                 with col32:
-                    servico = st.text_input("Serviço (3 dígitos)", "115", max_chars=3)
+                    servico = st.text_input("Serviço (3 dígitos)", dados_edicao.get("servico", "115"), max_chars=3)
                 with col33:
-                    classificacao = st.text_input("Classificação (3 dígitos)", "002", max_chars=3)
+                    classificacao = st.text_input("Classificação (3 dígitos)", dados_edicao.get("classificacao", "002"), max_chars=3)
                     
                 col34, col35 = st.columns(2)
                 with col34:
-                    local_realizacao = st.selectbox("Local Realização", ["", "C - CAPS", "T - Território"])
+                    local_atual = dados_edicao.get("local_realizacao", "")
+                    opcoes_local = ["", "C - CAPS", "T - Território"]
+                    local_idx = 0
+                    for i, opt in enumerate(opcoes_local):
+                        if opt.startswith(local_atual):
+                            local_idx = i
+                            break
+                    local_realizacao = st.selectbox("Local Realização", opcoes_local, index=local_idx)
 
-                submitted = st.form_submit_button("➕ Adicionar Lançamento ao Lote", type="primary", use_container_width=True)
+                texto_botao = "💾 Salvar Alterações" if st.session_state.editando_idx is not None else "➕ Adicionar Lançamento ao Lote"
+                submitted = st.form_submit_button(texto_botao, type="primary", use_container_width=True)
 
             if submitted:
                 cpf_limpo = ''.join(filter(str.isdigit, cpf_user)).zfill(11) if cpf_user.strip() else ""
@@ -473,10 +576,16 @@ with col_form:
                         "cbo": dados_prof["cbo"].zfill(6), "local_realizacao": local_realizacao[0], "competencia": competencia_input
                     }
                     
-                    st.session_state.atendimentos.append(novo_registro)
+                    if st.session_state.editando_idx is not None:
+                        st.session_state.atendimentos[st.session_state.editando_idx] = novo_registro
+                        st.session_state.editando_idx = None
+                        msg = "Atendimento atualizado e salvo online com sucesso!"
+                    else:
+                        st.session_state.atendimentos.append(novo_registro)
+                        msg = f"Atendimento de {novo_registro['nome_user']} adicionado e salvo online com sucesso!"
+
                     salvar_no_sheets()
-                            
-                    st.success(f"Atendimento de {novo_registro['nome_user']} adicionado e salvo online com sucesso!")
+                    st.success(msg)
                     st.rerun()
 
 with col_hist:
@@ -498,10 +607,19 @@ with col_hist:
             with st.expander(f"👤 {reg['nome_user']} (CPF: {reg['cpf_user']})"):
                 st.write(f"**Procedimento:** {reg['procedimento']} | **Data:** {reg['dt_atend']}")
                 st.write(f"**CID:** {reg['cid_principal']} | **Mãe:** {reg['nome_mae']}")
-                if st.button("🗑️ Excluir este lançamento", key=f"del_{idx}"):
-                    st.session_state.atendimentos.pop(idx)
-                    salvar_no_sheets()
-                    st.rerun()
+                
+                col_b1, col_b2 = st.columns(2)
+                with col_b1:
+                    if st.button("✏️ Editar", key=f"edit_{idx}"):
+                        st.session_state.editando_idx = idx
+                        st.rerun()
+                with col_b2:
+                    if st.button("🗑️ Excluir", key=f"del_{idx}"):
+                        st.session_state.atendimentos.pop(idx)
+                        if st.session_state.editando_idx == idx:
+                            st.session_state.editando_idx = None
+                        salvar_no_sheets()
+                        st.rerun()
 
     st.markdown("---")
     if total_registros_brutos > 0:
