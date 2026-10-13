@@ -132,10 +132,10 @@ with st.sidebar:
         st.rerun()
 
 # ==========================================
-# INÍCIO DO SISTEMA RAAS-PS
+# INÍCIO DO SISTEMA RAAS-Divisópolis
 # ==========================================
 
-st.title("🗂️ Gerador de Remessa RAAS-PS (DATASUS)")
+st.title("🗂️ Gerador de Remessa RAAS-Divisópolis (CAPS-I)")
 
 st.markdown("### ⚙️ Competência & Gerenciamento de Lote")
 col_comp1, col_comp2, col_comp3 = st.columns([1, 1.5, 1.5])
@@ -169,7 +169,7 @@ st.markdown("---")
 col_form, col_hist = st.columns([1.3, 1])
 
 with col_form:
-    st.subheader("📝 Formulário de Digitação (Em Branco)")
+    st.subheader("📝 Cadastro de paciente e atendimento")
     
     with st.form("form_registro", clear_on_submit=False):
         tab_p, tab_a, tab_r = st.tabs(["[ P ] Paciente", "[ A ] Atendimento", "[ R ] Procedimento"])
