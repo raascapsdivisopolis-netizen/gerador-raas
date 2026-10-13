@@ -227,9 +227,9 @@ with col_form:
             with col36:
                 local_realizacao = st.selectbox("Local Realização", ["C - CAPS", "T - Território"], index=0)
 
-        # O botão de envio fica posicionado ao final, aparecendo exclusivamente na última aba
-        submitted = st.form_submit_button("➕ Adicionar Lançamento ao Lote", type="primary")
-        
+            # O botão de envio está alocado estritamente dentro da última aba [ R ] Procedimento
+            submitted = st.form_submit_button("➕ Adicionar Lançamento ao Lote", type="primary")
+
         if submitted:
             cpf_limpo = ''.join(filter(str.isdigit, cpf_user)).zfill(11)
             if len(cpf_limpo) != 11 or cpf_limpo == "00000000000":
