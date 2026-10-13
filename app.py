@@ -10,21 +10,27 @@ st.title("🗂️ Gerador de Remessa RAAS-PS (DATASUS)")
 if "atendimentos" not in st.session_state:
     st.session_state.atendimentos = []
 
+# --- TABELA OFICIAL DE TIPOS DE LOGRADOURO ---
+TABELA_TIPO_LOGRADOURO = {
+    "081 - RUA": "081",
+    "008 - AVENIDA": "008",
+    "100 - TRAVESSA": "100",
+    "037 - FAZENDA": "037",
+    "828 - POVOADO": "828",
+    "092 - SITIO": "092",
+    "713 - COMUNIDADE": "713",
+    "065 - PRACA": "065"
+}
+
 # --- FUNÇÃO AUXILIAR PARA VALIDAR E CONVERTER DATAS DE DDMMAAAA PARA AAAAMMDD ---
 def converter_data_para_sigtap(data_str):
-    """
-    Recebe uma string em formato DDMMAAAA (ex: 12082026) ou DDMMAA (ex: 120826) 
-    e converte para AAAAMMDD (ex: 20260812).
-    Remove barras ou caracteres inválidos automaticamente.
-    Retorna None se a data for inválida.
-    """
     limpa = ''.join(filter(str.isdigit, data_str))
     
     if len(limpa) == 8: # DDMMAAAA
         dia = limpa[0:2]
         mes = limpa[2:4]
         ano = limpa[4:8]
-    elif len(limpa) == 6: # DDMMAA (Assume século 2000)
+    elif len(limpa) == 6: # DDMMAA
         dia = limpa[0:2]
         mes = limpa[2:4]
         ano = "20" + limpa[4:6]
@@ -32,9 +38,8 @@ def converter_data_para_sigtap(data_str):
         return None
         
     try:
-        # Testa se a data é real (ex: evita 31/02)
         dt_obj = datetime(int(ano), int(mes), int(dia))
-        return dt_obj.strftime("%Y%m%d") # Retorna AAAAMMDD
+        return dt_obj.strftime("%Y%m%d")
     except ValueError:
         return None
 
@@ -126,7 +131,7 @@ st.markdown("---")
 col_form, col_hist = st.columns([1.3, 1])
 
 with col_form:
-    st.subheader("📝 Formulário de Digitação (Datas em DDMMAAAA)")
+    st.subheader("📝 Formulário de Digitação (Tudo em Maiúsculo)")
     
     with st.form("form_registro", clear_on_submit=False):
         tab_p, tab_a, tab_r = st.tabs(["[ P ] Paciente", "[ A ] Atendimento", "[ R ] Procedimento"])
@@ -148,7 +153,7 @@ with col_form:
             with col5:
                 sexo = st.selectbox("Sexo", ["M", "F"])
             with col6:
-                dt_nasc = st.text_input("Data Nascimento (DDMMAAAA - ex: 07091985)", "07091985", max_chars=10)
+                dt_nasc = st.text_input("Data Nascimento (DDMMAAAA)", "07091985", max_chars=10)
                 
             col7, col8 = st.columns(2)
             with col7:
@@ -173,7 +178,9 @@ with col_form:
                 
             col14, col15, col16 = st.columns(3)
             with col14:
-                tipo_log = st.text_input("Cód. Tipo Logradouro (3 dígitos)", "081", max_chars=3)
+                # Seleção do tipo de logradouro pela tabela padronizada
+                tipo_log_selecionado = st.selectbox("Tipo de Logradouro", list(TABELA_TIPO_LOGRADOURO.keys()))
+                codigo_tipo_log = TABELA_TIPO_LOGRADOURO[tipo_log_selecionado]
             with col15:
                 logradouro = st.text_input("Nome Logradouro", "RUA JOSE FERRAZ")
             with col16:
@@ -192,7 +199,7 @@ with col_form:
         with tab_a:
             col21, col22, col22b = st.columns(3)
             with col21:
-                dt_admissao = st.text_input("Data Admissão (DDMMAAAA - ex: 12082026)", "12082026", max_chars=10)
+                dt_admissao = st.text_input("Data Admissão (DDMMAAAA)", "12082026", max_chars=10)
             with col22:
                 carater_opt = st.selectbox("Caráter Atendimento", ["01 - Eletivo", "02 - Urgência"], index=0)
             with col22b:
@@ -236,7 +243,7 @@ with col_form:
             
             col29, col30 = st.columns(2)
             with col29:
-                dt_atend = st.text_input("Data do Procedimento (DDMMAAAA - ex: 12082026)", "12082026", max_chars=10)
+                dt_atend = st.text_input("Data do Procedimento (DDMMAAAA)", "12082026", max_chars=10)
             with col30:
                 procedimento = st.text_input("Procedimento SIGTAP (10 dígitos)", "0301080020", max_chars=10)
                 
@@ -261,7 +268,6 @@ with col_form:
         if submitted:
             cpf_limpo = ''.join(filter(str.isdigit, cpf_user)).zfill(11)
             
-            # Validação das datas convertidas de DDMMAAAA para AAAAMMDD
             dt_nasc_conv = converter_data_para_sigtap(dt_nasc)
             dt_admissao_conv = converter_data_para_sigtap(dt_admissao)
             dt_atend_conv = converter_data_para_sigtap(dt_atend)
@@ -272,13 +278,13 @@ with col_form:
             elif not nome_user or not nome_mae:
                 st.error("Nome do Paciente e Nome da Mãe são obrigatórios!")
             elif not dt_nasc_conv:
-                st.error("Data de Nascimento inválida! Use o formato DDMMAAAA (ex: 07091985).")
+                st.error("Data de Nascimento inválida! Use DDMMAAAA (ex: 07091985).")
             elif not dt_admissao_conv:
-                st.error("Data de Admissão inválida! Use o formato DDMMAAAA (ex: 12082026).")
+                st.error("Data de Admissão inválida! Use DDMMAAAA (ex: 12082026).")
             elif not dt_atend_conv:
-                st.error("Data do Procedimento inválida! Use o formato DDMMAAAA (ex: 12082026).")
+                st.error("Data do Procedimento inválida! Use DDMMAAAA (ex: 12082026).")
             elif dt_conclusao.strip() and not dt_conclusao_conv:
-                st.error("Data de Conclusão/Alta inválida! Use o formato DDMMAAAA.")
+                st.error("Data de Conclusão/Alta inválida! Use DDMMAAAA.")
             elif len(cid_principal.strip()) < 4:
                 st.error("O CID Principal deve ter 4 caracteres (Ex: F411)!")
             else:
@@ -295,7 +301,7 @@ with col_form:
                     "dt_nasc": dt_nasc_conv, "raca": raca_opt[:2], "etnia": etnia.zfill(4),
                     "nome_mae": nome_mae.strip().upper(), "nome_resp": (nome_resp.strip().upper() if nome_resp else nome_mae.strip().upper()),
                     "cep": cep.zfill(8), "municipio": municipio.zfill(7), "bairro": bairro.strip().upper().ljust(30, ' ')[:30],
-                    "tipo_log": tipo_log.zfill(3), "logradouro": logradouro.strip().upper().ljust(30, ' ')[:30],
+                    "tipo_log": codigo_tipo_log, "logradouro": logradouro.strip().upper().ljust(30, ' ')[:30],
                     "numero": numero.zfill(5), "complemento": complemento.strip().upper().ljust(10, ' ')[:10],
                     "tel_cel": tel_cel.zfill(11), "tel_contato": tel_contato.zfill(11),
                     "situacao_rua": situacao_rua, "dt_admissao": dt_admissao_conv,
