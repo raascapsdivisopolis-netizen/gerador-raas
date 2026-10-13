@@ -346,7 +346,7 @@ with col_form:
                     cep_val = dados_edicao.get("cep", "39912000" if not dados_edicao else dados_edicao.get("cep", "39912000"))
                     cep = st.text_input("CEP", cep_val, max_chars=8)
                 with col12:
-                    mun_val = dados_edicao.get("municipio", "3122450")
+                    mun_val = dados_edicao.get("municipio", "3122454" if not dados_edicao else dados_edicao.get("municipio", "3122454"))
                     municipio = st.text_input("Município IBGE (c/ DV)", mun_val, max_chars=7)
                 with col13:
                     bairro_val = dados_edicao.get("bairro", "").strip()
@@ -558,7 +558,7 @@ with col_form:
                         "cns_user": cns_final, "nome_user": nome_user.strip().upper(), "sexo": sexo[0],
                         "dt_nasc": dt_nasc_conv, "raca": raca_opt[:2], "etnia": etnia.strip().zfill(4) if etnia.strip() else "0000",
                         "nome_mae": nome_mae.strip().upper(), "nome_resp": (nome_resp.strip().upper() if nome_resp.strip() else nome_mae.strip().upper()),
-                        "cep": cep.strip().zfill(8) if cep.strip() else "00000000", "municipio": municipio.strip().zfill(7) if municipio.strip() else "3122450", "bairro": bairro.strip().upper().ljust(30, ' ')[:30],
+                        "cep": cep.strip().zfill(8) if cep.strip() else "00000000", "municipio": municipio.strip().zfill(7) if municipio.strip() else "3122454", "bairro": bairro.strip().upper().ljust(30, ' ')[:30],
                         "tipo_log": codigo_tipo_log, "logradouro": logradouro.strip().upper().ljust(30, ' ')[:30],
                         "numero": numero.strip().zfill(5) if numero.strip() else "00000", "complemento": complemento.strip().upper().ljust(10, ' ')[:10],
                         "tel_cel": tel_cel.strip().zfill(11) if tel_cel.strip() else "00000000000", "tel_contato": tel_contato.strip().zfill(11) if tel_contato.strip() else "00000000000",
