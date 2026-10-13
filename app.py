@@ -6,33 +6,32 @@ import os
 
 st.set_page_config(page_title="Gerador RAAS-PS", layout="wide")
 
-# --- ESTILIZAÇÃO CSS COM EFEITO VITRIFICADO (GLASSMORPHISM) ---
+# --- ESTILIZAÇÃO CSS COM EFEITO VITRIFICADO E CAMPOS ALINHADOS ---
 st.markdown("""
     <style>
-        /* Estilização dos inputs para ficarem idênticos, com tom amarelho suave e borda marrom */
+        /* Padroniza a largura de todos os inputs de texto e senha do formulário */
         div[data-testid="stForm"] input {
             background-color: rgba(255, 253, 231, 0.85) !important;
             border: 1px solid #795548 !important;
             color: #3e2723 !important;
             font-weight: 500;
-            width: 100% !important;
         }
         
-        /* Força a mesma largura do container interno do campo de senha */
+        /* Força a largura total exata no container do input de senha */
         div[data-testid="stForm"] div[data-baseweb="input"] {
             width: 100% !important;
         }
         
-        /* Card de login com efeito vitrificado (Glassmorphism) */
+        /* Card de login com efeito vitrificado (Glassmorphism) e sombra suave */
         div[data-testid="stForm"] {
             max-width: 420px;
             margin: 0 auto;
-            background: rgba(255, 255, 255, 0.65) !important;
-            backdrop-filter: blur(10px) !important;
-            -webkit-backdrop-filter: blur(10px) !important;
-            border-radius: 14px;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.55) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px 0 rgba(31, 38, 135, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.6);
             padding: 30px;
         }
     </style>
@@ -89,7 +88,7 @@ CADASTRO_PROFISSIONAIS = {
     "ALANE DE OLIVEIRA MACEDO": {"cns": "700609921575863", "cbo": "322205"},
 }
 
-# --- SISTEMA DE LOGIN COM EFEITO VITRIFICADO ---
+# --- SISTEMA DE LOGIN ---
 def verificar_senha():
     if "autenticado" not in st.session_state:
         st.session_state.autenticado = False
@@ -97,14 +96,13 @@ def verificar_senha():
     if st.session_state.autenticado:
         return True
 
-    # Busca a imagem com tolerância para maiúsculas/minúsculas
+    # Busca a imagem da logo
     caminho_logo = None
     for nome in ["logo.png", "Logo.png", "logo.jpg", "Logo.jpg"]:
         if os.path.exists(nome):
             caminho_logo = nome
             break
 
-    # Exibe a logo perfeitamente centralizada
     col_l1, col_l2, col_l3 = st.columns([1, 0.8, 1])
     with col_l2:
         if caminho_logo:
