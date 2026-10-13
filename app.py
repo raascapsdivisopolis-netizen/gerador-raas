@@ -2,12 +2,11 @@ import streamlit as st
 import io
 import json
 from datetime import datetime
-from PIL import Image
 import os
 
 st.set_page_config(page_title="Gerador RAAS-PS", layout="wide")
 
-# --- ESTILIZAÇÃO CSS PARA UNIFORMIZAR OS CAMPOS DE LOGIN ---
+# --- ESTILIZAÇÃO CSS PARA A TELA DE LOGIN ---
 st.markdown("""
     <style>
         /* Força a mesma largura e tamanho para os inputs do formulário de login */
@@ -16,17 +15,29 @@ st.markdown("""
             border: 1px solid #795548 !important;
             color: #3e2723 !important;
             font-weight: 500;
+        }
+        
+        /* Ajusta o campo de senha para alinhar perfeitamente com o usuário */
+        div[data-testid="stForm"] div[data-baseweb="input"] {
             width: 100% !important;
         }
         
         /* Centraliza e estiliza o card de login */
         div[data-testid="stForm"] {
-            max-width: 450px;
+            max-width: 420px;
             margin: 0 auto;
             border-radius: 10px;
             box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.08);
             border: 1px solid #e0e0e0;
             padding: 30px;
+        }
+        
+        /* Centralizador para imagem de logo */
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 10px;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -82,7 +93,7 @@ CADASTRO_PROFISSIONAIS = {
     "ALANE DE OLIVEIRA MACEDO": {"cns": "700609921575863", "cbo": "322205"},
 }
 
-# --- SISTEMA DE LOGIN COM LOGO LOCAL E TÍTULO CENTRALIZADO ---
+# --- SISTEMA DE LOGIN COM LOGO CENTRALIZADO ---
 def verificar_senha():
     if "autenticado" not in st.session_state:
         st.session_state.autenticado = False
@@ -90,17 +101,23 @@ def verificar_senha():
     if st.session_state.autenticado:
         return True
 
-    # Exibe a logo local (se o arquivo logo.png existir na pasta)
-    col_l1, col_l2, col_l3 = st.columns([1, 1, 1])
+    # Busca a imagem com tolerancia para maiusculas/minusculas
+    caminho_logo = None
+    for nome in ["logo.png", "Logo.png", "logo.jpg", "Logo.jpg"]:
+        if os.path.exists(nome):
+            caminho_logo = nome
+            break
+
+    # Exibe a logo perfeitamente centralizada
+    col_l1, col_l2, col_l3 = st.columns([1, 0.8, 1])
     with col_l2:
-        if os.path.exists("logo.png"):
-            st.image("logo.png", width=120)
+        if caminho_logo:
+            st.image(caminho_logo, use_container_width=True)
         else:
-            # Fallback caso a imagem ainda não tenha sido enviada
-            st.markdown("<div style='text-align: center; font-size: 36px;'>🏛️</div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align: center; font-size: 42px;'>🏛️</div>", unsafe_allow_html=True)
 
     st.markdown("""
-        <div style="text-align: center; margin-top: 10px; margin-bottom: 25px;">
+        <div style="text-align: center; margin-top: 5px; margin-bottom: 25px;">
             <div style="font-size: 13px; font-weight: bold; color: #555; text-transform: uppercase; letter-spacing: 1px;">
                 PREFEITURA MUNICIPAL DE DIVISÓPOLIS - MG
             </div>
@@ -111,7 +128,7 @@ def verificar_senha():
         </div>
     """, unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1, 1.4, 1])
+    col1, col2, col3 = st.columns([1, 1.3, 1])
     with col2:
         with st.form("form_login"):
             usuario = st.text_input("Usuário")
