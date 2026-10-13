@@ -6,37 +6,15 @@ import os
 
 st.set_page_config(page_title="Gerador RAAS-PS", layout="wide")
 
-# --- ESTILIZAÇÃO CSS COMPLETA E FORMULÁRIO VITRIFICADO UNIVERSAL ---
+# --- ESTILIZAÇÃO CSS SIMPLES E DIRETA ---
 st.markdown("""
     <style>
-        /* Esconde elementos padrão indesejados da tela de login se necessário */
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-
-        /* Estilização universal do card de login e inputs com Glassmorphism */
-        .login-card {
-            max-width: 420px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.65);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-radius: 16px;
-            box-shadow: 0 10px 30px 0 rgba(31, 38, 135, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.7);
-            padding: 30px;
-        }
-
-        /* Padroniza perfeitamente os inputs do Streamlit para largura total idêntica */
+        /* Estiliza os campos de login com fundo amarelo claro e borda marrom fina */
         div[data-testid="stForm"] input {
-            background-color: rgba(255, 253, 231, 0.9) !important;
+            background-color: #fffde7 !important;
             border: 1px solid #795548 !important;
             color: #3e2723 !important;
             font-weight: 500;
-            width: 100% !important;
-        }
-
-        div[data-testid="stForm"] div[data-baseweb="input"] {
-            width: 100% !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -92,7 +70,7 @@ CADASTRO_PROFISSIONAIS = {
     "ALANE DE OLIVEIRA MACEDO": {"cns": "700609921575863", "cbo": "322205"},
 }
 
-# --- SISTEMA DE LOGIN ---
+# --- SISTEMA DE LOGIN COMPACTO E CENTRALIZADO ---
 def verificar_senha():
     if "autenticado" not in st.session_state:
         st.session_state.autenticado = False
@@ -100,22 +78,21 @@ def verificar_senha():
     if st.session_state.autenticado:
         return True
 
-    # Busca a imagem da logo (compatível com maiúsculas/minúsculas)
+    # Busca a imagem da logo (compatível com maiúsculas e minúsculas)
     caminho_logo = None
     for nome in ["logo.png", "Logo.png", "logo.jpg", "Logo.jpg"]:
         if os.path.exists(nome):
             caminho_logo = nome
             break
 
+    # Exibe a logo perfeitamente centralizada
     col_l1, col_l2, col_l3 = st.columns([1, 0.8, 1])
     with col_l2:
         if caminho_logo:
             st.image(caminho_logo, use_container_width=True)
-        else:
-            st.markdown("<div style='text-align: center; font-size: 42px;'>🏛️</div>", unsafe_allow_html=True)
 
     st.markdown("""
-        <div style="text-align: center; margin-top: 5px; margin-bottom: 25px;">
+        <div style="text-align: center; margin-top: 5px; margin-bottom: 20px;">
             <div style="font-size: 13px; font-weight: bold; color: #555; text-transform: uppercase; letter-spacing: 1px;">
                 PREFEITURA MUNICIPAL DE DIVISÓPOLIS - MG
             </div>
@@ -126,9 +103,8 @@ def verificar_senha():
         </div>
     """, unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1, 1.3, 1])
+    col1, col2, col3 = st.columns([1, 1.1, 1])
     with col2:
-        st.markdown('<div class="login-card">', unsafe_allow_html=True)
         with st.form("form_login"):
             usuario = st.text_input("Usuário")
             senha = st.text_input("Senha", type="password")
@@ -143,7 +119,6 @@ def verificar_senha():
                     st.rerun()
                 else:
                     st.error("Usuário ou senha incorretos!")
-        st.markdown('</div>', unsafe_allow_html=True)
     return False
 
 if not verificar_senha():
