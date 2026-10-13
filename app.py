@@ -150,6 +150,50 @@ CADASTRO_PROFISSIONAIS = {
 
 INVERSO_PROFISSIONAIS = {v["cns"]: k for k, v in CADASTRO_PROFISSIONAIS.items() if v["cns"] != ""}
 
+# --- TABELA DE PROCEDIMENTOS PSICOSSOCIAIS COM CBO COMPATÍVEL ---
+TABELA_PROCEDIMENTOS = [
+    {
+        "codigo": "0301080020",
+        "descricao": "ACOLHIMENTO NOTURNO DE PACIENTE EM CENTRO DE ATENÇÃO PSICOSSOCIAL",
+        "cbos": ["239415", "791115", "239410", "251605", "225133", "251510", "223505", "422105", "322205"]
+    },
+    {
+        "codigo": "0301080046",
+        "descricao": "ACOMPANHAMENTO DE PACIENTE EM SAUDE MENTAL",
+        "cbos": ["239415", "791115", "239410", "251605", "225133", "251510", "223505", "422105", "322205"]
+    },
+    {
+        "codigo": "0301080160",
+        "descricao": "ATENDIMENTO EM PSICOTERAPIA DE GRUPO",
+        "cbos": ["239415", "239410", "251605", "225133", "251510", "223505"]
+    },
+    {
+        "codigo": "0301080178",
+        "descricao": "ATENDIMENTO INDIVIDUAL EM PSICOTERAPIA",
+        "cbos": ["239415", "239410", "251605", "225133", "251510", "223505"]
+    },
+    {
+        "codigo": "0301080208",
+        "descricao": "ATENDIMENTO INDIVIDUAL DE PACIENTE EM CENTRO DE ATENÇÃO PSICOSSOCIAL",
+        "cbos": ["239415", "791115", "239410", "251605", "225133", "251510", "223505", "422105", "322205"]
+    },
+    {
+        "codigo": "0301080216",
+        "descricao": "ATENDIMENTO EM GRUPO DE PACIENTE EM CENTRO DE ATENÇÃO PSICOSSOCIAL",
+        "cbos": ["239415", "791115", "239410", "251605", "225133", "251510", "223505", "422105", "322205"]
+    },
+    {
+        "codigo": "0301080224",
+        "descricao": "ATENDIMENTO DOMICILIAR EM SAUDE MENTAL",
+        "cbos": ["239415", "239410", "251605", "225133", "251510", "223505", "322205"]
+    },
+    {
+        "codigo": "0301080232",
+        "descricao": "PRONTO ATENDIMENTO EM SAUDE MENTAL",
+        "cbos": ["239415", "225133", "251510", "223505"]
+    }
+]
+
 # --- SISTEMA DE LOGIN ---
 def verificar_senha():
     if "autenticado" not in st.session_state:
@@ -323,7 +367,7 @@ with col_form:
                 with col7:
                     raca_atual = dados_edicao.get("raca", "03" if not dados_edicao else dados_edicao.get("raca", ""))
                     opcoes_raca = ["", "01 - Branca", "02 - Preta", "03 - Parda", "04 - Amarela", "05 - Indígena"]
-                    raca_idx = 3 # Padrão: 03 - Parda
+                    raca_idx = 3 
                     for i, opt in enumerate(opcoes_raca):
                         if opt.startswith(raca_atual):
                             raca_idx = i
@@ -432,7 +476,7 @@ with col_form:
                 col25, col26 = st.columns(2)
                 with col25:
                     esf_atual = dados_edicao.get("cobertura_esf", "S" if not dados_edicao else dados_edicao.get("cobertura_esf", "S"))
-                    esf_idx = ["", "N", "S"].index(esf_atual) if esf_atual in ["N", "S"] else 2 # Padrão: S
+                    esf_idx = ["", "N", "S"].index(esf_atual) if esf_atual in ["N", "S"] else 2 
                     cobertura_esf = st.selectbox("Cobertura ESF?", ["", "N", "S"], index=esf_idx)
                 with col26:
                     cnes_esf = st.text_input("CNES USF", dados_edicao.get("cnes_esf", "2119811"), max_chars=7)
@@ -453,7 +497,7 @@ with col_form:
                     dt_conclusao = st.text_input("Data Conclusão/Alta (DDMMAAAA - Opcional)", dt_conc_val, max_chars=10)
 
             with tab_r:
-                st.markdown("##### Selecione o Profissional")
+                st.markdown("##### Selecione o Profissional Executante")
                 cns_prof_salvo = dados_edicao.get("cns_prof", "")
                 nome_prof_salvo = INVERSO_PROFISSIONAIS.get(cns_prof_salvo, "Selecione o Profissional...")
                 chaves_prof = list(CADASTRO_PROFISSIONAIS.keys())
@@ -467,18 +511,55 @@ with col_form:
                 )
                 
                 dados_prof = CADASTRO_PROFISSIONAIS.get(prof_selecionado, {"cns": "", "cbo": ""})
+                cbo_atual = dados_prof["cbo"]
+
+                st.markdown("##### Procedimento SIGTAP Compatível com o CBO")
                 
+                # FILTRO DINÂMICO DE PROCEDIMENTOS BASEADO NO CBO DO PROFISSIONAL
+                procedimentos_compativeis = [
+                    p for p in TABELA_PROCEDIMENTOS if cbo_atual in p["cbos"]
+                ] if cbo_atual else []
+
+                opcoes_proc_dict = {}
+                if procedimentos_compativeis:
+                    for p in procedimentos_compativeis:
+                        rotulo = f"{p['codigo']} - {p['descricao']}"
+                        opcoes_proc_dict[rotulo] = p['codigo']
+                
+                proc_salvo = dados_edicao.get("procedimento", "")
+                label_proc_inicial = "Selecione o Procedimento..."
+                lista_opcoes_proc = ["Selecione o Procedimento..."] + list(opcoes_proc_dict.keys())
+                
+                proc_idx = 0
+                if proc_salvo:
+                    for i, (rot, cod) in enumerate(opcoes_proc_dict.items()):
+                        if cod == proc_salvo:
+                            proc_idx = i + 1
+                            break
+
+                proc_selecionado_box = st.selectbox(
+                    "Procedimento (Filtrado pelo CBO do Profissional)",
+                    lista_opcoes_proc,
+                    index=proc_idx
+                )
+
+                # Define o código do procedimento escolhido
+                if proc_selecionado_box != "Selecione o Procedimento...":
+                    procedimento = opcoes_proc_dict[proc_selecionado_box]
+                else:
+                    procedimento = ""
+
                 col29, col30 = st.columns(2)
                 with col29:
                     dt_atend_val = formatar_data_para_exibicao(dados_edicao.get("dt_atend", ""))
                     dt_atend = st.text_input("Data do Procedimento (DDMMAAAA)", dt_atend_val, max_chars=10)
                 with col30:
-                    procedimento = st.text_input("Procedimento SIGTAP (10 dígitos)", dados_edicao.get("procedimento", ""), max_chars=10)
+                    st.text_input("CBO do Profissional (Automático)", value=cbo_atual, disabled=True)
                     
                 col31, col32, col33 = st.columns(3)
                 with col31:
                     qtd_val = dados_edicao.get("quantidade", "").strip().lstrip("0")
-                    quantidade = st.text_input("Quantidade", qtd_val if qtd_val else "", max_chars=6)
+                    quantidade = st.text_input("Quantidade", qtd_val if qtd_val else "1", max_chars=6)
                 with col32:
                     servico = st.text_input("Serviço (3 dígitos)", dados_edicao.get("servico", "115"), max_chars=3)
                 with col33:
@@ -488,7 +569,7 @@ with col_form:
                 with col34:
                     local_atual = dados_edicao.get("local_realizacao", "C" if not dados_edicao else dados_edicao.get("local_realizacao", "C"))
                     opcoes_local = ["", "C - CAPS", "T - Território"]
-                    local_idx = 1 # Padrão: C - CAPS
+                    local_idx = 1 
                     for i, opt in enumerate(opcoes_local):
                         if opt.startswith(local_atual):
                             local_idx = i
@@ -539,7 +620,7 @@ with col_form:
                 elif len(cid_principal.strip()) < 4:
                     st.error("O CID Principal deve ter 4 caracteres (Ex: F411)!")
                 elif not procedimento.strip():
-                    st.error("O código do Procedimento SIGTAP é obrigatório!")
+                    st.error("Selecione um Procedimento válido compatível com o CBO do profissional!")
                 elif prof_selecionado == "Selecione o Profissional...":
                     st.error("Selecione o Profissional Executante!")
                 else:
