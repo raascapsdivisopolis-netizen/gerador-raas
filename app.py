@@ -258,7 +258,7 @@ with col_hist:
                     reg["sexo"] +                                          # 187-187 (1)  ras_sexopcnte
                     reg["raca"] +                                          # 188-189 (2)  ras_raca
                     reg["nome_resp"].ljust(30, ' ')[:30] +                 # 190-219 (30) ras_nomeresp
-                    "105" +                                                # 220-222 (3)  ras_nascpcnte (105=Brasil)
+                    "010" +                                                # 220-222 (3)  ras_nascpcnte (010=Brasil)
                     reg["etnia"] +                                         # 223-226 (4)  ras_etnia
                     reg["tel_contato"] +                                   # 227-237 (11) ras_telefone
                     reg["tel_cel"] +                                       # 238-248 (11) ras_celular
