@@ -10,13 +10,13 @@ if "atendimentos" not in st.session_state:
     st.session_state.atendimentos = []
 
 # --- CADASTRO INTELIGENTE DE PROFISSIONAIS ---
-# Você pode adicionar ou alterar os profissionais da equipe aqui facilmente
+# Edite ou adicione os profissionais da sua unidade aqui:
 CADASTRO_PROFISSIONAIS = {
     "Selecione o Profissional...": {"cns": "000000000000000", "cbo": "000000"},
     "Psicólogo(a) - Exemplo": {"cns": "702805644714369", "cbo": "251510"},
     "Enfermeiro(a) - Exemplo": {"cns": "700000000000002", "cbo": "223505"},
     "Médico(a) Psiquiatra - Exemplo": {"cns": "700000000000003", "cbo": "225125"},
-    "ALANE DE OLIVEIRA MACEDO - Tecnico de enfermagem": {"cns": "700609921575863", "cbo": "322205"},
+    "Assistente Social - Exemplo": {"cns": "700000000000004", "cbo": "251605"},
 }
 
 # --- SISTEMA DE LOGIN SIMPLES ---
@@ -96,6 +96,7 @@ col_form, col_hist = st.columns([1.3, 1])
 with col_form:
     st.subheader("📝 Formulário de Digitação de Atendimento")
     
+    # Formulário principal de cadastro
     with st.form("form_registro", clear_on_submit=False):
         tab_p, tab_a, tab_r = st.tabs(["[ P ] Paciente", "[ A ] Atendimento", "[ R ] Procedimento"])
         
@@ -193,11 +194,16 @@ with col_form:
                 dt_conclusao = st.text_input("Data Alta/Conclusão (Opcional)", "", max_chars=8)
 
         with tab_r:
-            st.markdown("##### Selecione o Profissional (Preenche CNS e CBO automaticamente)")
-            prof_selecionado = st.selectbox("Profissional Executante", list(CADASTRO_PROFISSIONAIS.keys()))
+            st.markdown("##### Selecione o Profissional")
+            # Usamos session_state para lembrar o profissional escolhido
+            prof_selecionado = st.selectbox(
+                "Profissional Executante", 
+                list(CADASTRO_PROFISSIONAIS.keys()),
+                key="select_profissional"
+            )
             
-            # Puxa automaticamente os valores cadastrados para o profissional escolhido
-            dados_prof = CADASTRO_PROFISSIONAIS[prof_selecionado]
+            # Pega os dados automáticos com base na escolha
+            dados_prof = CADASTRO_PROFISSIONAIS.get(prof_selecionado, {"cns": "000000000000000", "cbo": "000000"})
             
             col29, col30 = st.columns(2)
             with col29:
@@ -215,9 +221,11 @@ with col_form:
                 
             col34, col35, col36 = st.columns(3)
             with col34:
-                cns_prof = st.text_input("CNS Profissional", dados_prof["cns"], max_chars=15)
+                # Preenche automaticamente usando o dicionário
+                cns_prof = st.text_input("CNS Profissional", value=dados_prof["cns"], max_chars=15, key="input_cns_prof")
             with col35:
-                cbo = st.text_input("CBO Profissional", dados_prof["cbo"], max_chars=6)
+                # Preenche automaticamente usando o dicionário
+                cbo = st.text_input("CBO Profissional", value=dados_prof["cbo"], max_chars=6, key="input_cbo_prof")
             with col36:
                 local_realizacao = st.selectbox("Local Realização", ["C - CAPS", "T - Território"], index=0)
 
@@ -257,8 +265,8 @@ with col_form:
                     "destino_usuario": destino_opt[:2], "dt_conclusao": dt_conclusao.zfill(8) if dt_conclusao else "".ljust(8, ' '),
                     "dt_atend": dt_atend.zfill(8), "procedimento": procedimento.zfill(10),
                     "quantidade": quantidade.zfill(6), "servico": servico.zfill(3),
-                    "classificacao": classificacao.zfill(3), "cns_prof": cns_prof.zfill(15),
-                    "cbo": cbo.zfill(6), "local_realizacao": local_realizacao[0]
+                    "classificacao": classificacao.zfill(3), "cns_prof": dados_prof["cns"].zfill(15),
+                    "cbo": dados_prof["cbo"].zfill(6), "local_realizacao": local_realizacao[0]
                 }
                 st.session_state.atendimentos.append(novo_registro)
                 st.success(f"Atendimento de {nome_user} adicionado!")
@@ -295,75 +303,26 @@ with col_hist:
                 sub16_total += int(reg["procedimento"]) + int(reg["quantidade"])
                 sub15_total += int(reg["cnes"]) + int(int(reg["cpf_user"]) if reg["cpf_user"].isdigit() else 0)
                 
-                # LINHA 15 - Com nacionalidade 010 (Brasil) rigorosamente alinhada
                 linha15 = (
-                    "15" +                                                 # 001-002
-                    codigo_uf +                                            # 003-004
-                    ano_mes +                                              # 005-010
-                    reg["cnes"] +                                          # 011-017
-                    reg["cns_user"] +                                      # 018-032
-                    reg["dt_admissao"] +                                   # 033-040
-                    "".ljust(8, ' ') +                                     # 041-048
-                    reg["nome_user"].ljust(30, ' ')[:30] +                 # 049-078
-                    reg["prontuario"] +                                    # 079-088
-                    reg["nome_mae"].ljust(30, ' ')[:30] +                  # 089-118
-                    reg["logradouro"] +                                    # 119-148
-                    reg["numero"] +                                        # 149-153
-                    reg["complemento"] +                                   # 154-163
-                    reg["cep"] +                                           # 164-171
-                    reg["municipio"] +                                     # 172-178
-                    reg["dt_nasc"] +                                       # 179-186
-                    reg["sexo"] +                                          # 187-187
-                    reg["raca"] +                                          # 188-189
-                    reg["nome_resp"].ljust(30, ' ')[:30] +                 # 190-219
-                    "010" +                                                # 220-222 (Código 010 para Brasil)
-                    reg["etnia"] +                                         # 223-226
-                    reg["tel_contato"] +                                   # 227-237
-                    reg["tel_cel"] +                                       # 238-248
-                    reg["destino_usuario"] +                               # 249-250
-                    reg["dt_conclusao"] +                                  # 251-258
-                    reg["cid_principal"] +                                 # 259-262
-                    "".ljust(4, ' ') +                                     # 263-266
-                    "".ljust(4, ' ') +                                     # 267-270
-                    "".ljust(4, ' ') +                                     # 271-274
-                    reg["cid_associado"] +                                 # 275-278
-                    reg["carater_atend"] +                                 # 279-280
-                    reg["origem_usuario"] +                                # 281-282
-                    reg["cobertura_esf"] +                                 # 283-283
-                    reg["cnes_esf"] +                                      # 284-290
-                    "00001" +                                              # 291-295
-                    reg["destino_usuario"] +                               # 296-297
-                    "RAS" +                                                # 298-300
-                    reg["situacao_rua"] +                                  # 301-301
-                    reg["usu_droga"] +                                     # 302-302
-                    reg["tipo_droga"] +                                    # 303-305
-                    "".ljust(13, ' ') +                                    # 306-318
-                    reg["bairro"] +                                        # 319-348
-                    reg["tipo_log"] +                                      # 349-351
-                    "".ljust(40, ' ') +                                    # 352-391
-                    reg["cpf_user"] +                                      # 392-402
-                    "".ljust(4, ' ')                                       # 403-406
+                    "15" + codigo_uf + ano_mes + reg["cnes"] + reg["cns_user"] + reg["dt_admissao"] + 
+                    "".ljust(8, ' ') + reg["nome_user"].ljust(30, ' ')[:30] + reg["prontuario"] + 
+                    reg["nome_mae"].ljust(30, ' ')[:30] + reg["logradouro"] + reg["numero"] + 
+                    reg["complemento"] + reg["cep"] + reg["municipio"] + reg["dt_nasc"] + 
+                    reg["sexo"] + reg["raca"] + reg["nome_resp"].ljust(30, ' ')[:30] + 
+                    "010" + reg["etnia"] + reg["tel_contato"] + reg["tel_cel"] + 
+                    reg["destino_usuario"] + reg["dt_conclusao"] + reg["cid_principal"] + 
+                    "".ljust(4, ' ') + "".ljust(4, ' ') + "".ljust(4, ' ') + reg["cid_associado"] + 
+                    reg["carater_atend"] + reg["origem_usuario"] + reg["cobertura_esf"] + 
+                    reg["cnes_esf"] + "00001" + reg["destino_usuario"] + "RAS" + reg["situacao_rua"] + 
+                    reg["usu_droga"] + reg["tipo_droga"] + "".ljust(13, ' ') + reg["bairro"] + 
+                    reg["tipo_log"] + "".ljust(40, ' ') + reg["cpf_user"] + "".ljust(4, ' ')
                 )
                 
-                # LINHA 16
                 linha16 = (
-                    "16" +                                                 # 001-002
-                    codigo_uf +                                            # 003-004
-                    ano_mes +                                              # 005-010
-                    reg["cnes"] +                                          # 011-017
-                    reg["cns_user"] +                                      # 018-032
-                    reg["dt_admissao"] +                                   # 033-040
-                    reg["procedimento"] +                                  # 041-050
-                    reg["cbo"] +                                           # 051-056
-                    reg["cns_prof"] +                                      # 057-071
-                    reg["dt_atend"] +                                      # 072-079
-                    reg["servico"] +                                       # 080-082
-                    reg["classificacao"] +                                 # 083-085
-                    reg["quantidade"] +                                    # 086-091
-                    "RAS" +                                                # 092-094
-                    reg["local_realizacao"] +                              # 095-095
-                    reg["cpf_user"] +                                      # 096-106
-                    "".ljust(4, ' ')                                       # 107-110
+                    "16" + codigo_uf + ano_mes + reg["cnes"] + reg["cns_user"] + reg["dt_admissao"] + 
+                    reg["procedimento"] + reg["cbo"] + reg["cns_prof"] + reg["dt_atend"] + 
+                    reg["servico"] + reg["classificacao"] + reg["quantidade"] + "RAS" + 
+                    reg["local_realizacao"] + reg["cpf_user"] + "".ljust(4, ' ')
                 )
                 
                 linhas_detalhe.append(linha15)
