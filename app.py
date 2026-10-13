@@ -9,13 +9,18 @@ st.title("🗂️ Gerador de Remessa RAAS-PS (DATASUS)")
 if "atendimentos" not in st.session_state:
     st.session_state.atendimentos = []
 
-# --- CADASTRO INTELIGENTE DE PROFISSIONAIS ---
+# --- CADASTRO INTELIGENTE DE PROFISSIONAIS (Atualizado com os dados da unidade) ---
 CADASTRO_PROFISSIONAIS = {
     "Selecione o Profissional...": {"cns": "000000000000000", "cbo": "000000"},
-    "Psicólogo(a) - Exemplo": {"cns": "702805644714369", "cbo": "251510"},
-    "Enfermeiro(a) - Exemplo": {"cns": "700000000000002", "cbo": "223505"},
-    "Médico(a) Psiquiatra - Exemplo": {"cns": "700000000000003", "cbo": "225125"},
-    "Assistente Social - Exemplo": {"cns": "700000000000004", "cbo": "251605"},
+    "SUELY DE JESUS SILVA": {"cns": "701006885473793", "cbo": "239415"},
+    "MANOELZITO VIEIRA SANTOS": {"cns": "703206632234698", "cbo": "791115"},
+    "JUCELIA DE JESUS NERES": {"cns": "898005177012184", "cbo": "239410"},
+    "JOYCE SOUZA SANTOS": {"cns": "700004226595607", "cbo": "251605"},
+    "EVERALDO PRADO RODRIGUES SANTIAGO": {"cns": "705002815360557", "cbo": "225133"},
+    "EDILSON DE JESUS SANTOS": {"cns": "700206945983830", "cbo": "251510"},
+    "CLEYTON NUNES CAMPOS": {"cns": "709805043226294", "cbo": "223505"},
+    "ALINE ALVES DE OLIVEIRA": {"cns": "708101591625938", "cbo": "422105"},
+    "ALANE DE OLIVEIRA MACEDO": {"cns": "700609921575863", "cbo": "322205"},
 }
 
 # --- SISTEMA DE LOGIN SIMPLES ---
@@ -240,7 +245,6 @@ with col_form:
                     if "Outras" in tipo_droga_opt: str_droga += "O"
                 str_droga = str_droga.ljust(3, ' ')[:3]
                 
-                # Conversão forçada para maiúsculo em todos os campos de texto
                 novo_registro = {
                     "cnes": cnes.zfill(7), "prontuario": prontuario.zfill(10), "cpf_user": cpf_limpo,
                     "cns_user": cns_user.zfill(15), "nome_user": nome_user.strip().upper(), "sexo": sexo,
@@ -268,7 +272,6 @@ with col_form:
 with col_hist:
     st.subheader("📋 Histórico do Lote Atual")
     
-    # Contagem rigorosa baseada em pacientes únicos (CPFs distintos) na remessa
     cpfs_unicos = set(reg['cpf_user'] for reg in st.session_state.atendimentos)
     total_pacientes = len(cpfs_unicos)
     total_registros_brutos = len(st.session_state.atendimentos)
@@ -330,7 +333,6 @@ with col_hist:
                 linhas_detalhe.append(linha16)
             
             soma_ctrl = str(1111 + ((sub16_total + sub15_total) % 1111)).zfill(4)
-            # O cabeçalho usa a contagem total de folhas/registros detalhe gerados
             qtd_folhas_str = str(total_registros_brutos).zfill(6)
             sufixo_comp_b = f"{ano_mes}b"
             
