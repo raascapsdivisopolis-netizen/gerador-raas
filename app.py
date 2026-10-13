@@ -3,13 +3,14 @@ import io
 import json
 from datetime import datetime
 import os
+import pandas as pd
+from st_gsheets_connection import GSheetsConnection
 
 st.set_page_config(page_title="Gerador RAAS-PS", layout="wide")
 
 # --- ESTILIZAÇÃO CSS SIMPLES E DIRETA ---
 st.markdown("""
     <style>
-        /* Estiliza os campos de login com fundo amarelo claro e borda marrom fina */
         div[data-testid="stForm"] input {
             background-color: #fffde7 !important;
             border: 1px solid #795548 !important;
@@ -19,14 +20,33 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-if "atendimentos" not in st.session_state:
-    st.session_state.atendimentos = []
+# --- CONEXÃO COM O GOOGLE SHEETS ---
+try:
+    conn = st.connection("gsheets", type=GSheetsConnection)
+except Exception as e:
+    conn = None
 
 if "usuario_logado" not in st.session_state:
     st.session_state.usuario_logado = ""
 
 if "digitação_habilitada" not in st.session_state:
     st.session_state.digitação_habilitada = True
+
+# --- CARREGA DADOS DO BANCO ONLINE (GOOGLE SHEETS) ---
+def carregar_atendimentos():
+    if conn is not None:
+        try:
+            df = conn.read(ttl=0)
+            if df is not None and not df.empty:
+                # Remove linhas totalmente vazias se houverem
+                df = df.dropna(how="all")
+                return df.fillna("").to_dict(orient="records")
+        except Exception:
+            pass
+    return []
+
+if "atendimentos" not in st.session_state:
+    st.session_state.atendimentos = carregar_atendimentos()
 
 # --- TABELA OFICIAL DE TIPOS DE LOGRADOURO ---
 TABELA_TIPO_LOGRADOURO = {
@@ -44,18 +64,12 @@ TABELA_TIPO_LOGRADOURO = {
 # --- FUNÇÃO AUXILIAR PARA VALIDAR E CONVERTER DATAS DE DDMMAAAA PARA AAAAMMDD ---
 def converter_data_para_sigtap(data_str):
     limpa = ''.join(filter(str.isdigit, data_str))
-    
-    if len(limpa) == 8: # DDMMAAAA
-        dia = limpa[0:2]
-        mes = limpa[2:4]
-        ano = limpa[4:8]
-    elif len(limpa) == 6: # DDMMAA
-        dia = limpa[0:2]
-        mes = limpa[2:4]
-        ano = "20" + limpa[4:6]
+    if len(limpa) == 8:
+        dia, mes, ano = limpa[0:2], limpa[2:4], limpa[4:8]
+    elif len(limpa) == 6:
+        dia, mes, ano = limpa[0:2], limpa[2:4], "20" + limpa[4:6]
     else:
         return None
-        
     try:
         dt_obj = datetime(int(ano), int(mes), int(dia))
         return dt_obj.strftime("%Y%m%d")
@@ -76,7 +90,7 @@ CADASTRO_PROFISSIONAIS = {
     "ALANE DE OLIVEIRA MACEDO": {"cns": "700609921575863", "cbo": "322205"},
 }
 
-# --- SISTEMA DE LOGIN COMPACTO E CENTRALIZADO ---
+# --- SISTEMA DE LOGIN ---
 def verificar_senha():
     if "autenticado" not in st.session_state:
         st.session_state.autenticado = False
@@ -84,14 +98,12 @@ def verificar_senha():
     if st.session_state.autenticado:
         return True
 
-    # Busca a imagem da logo (compatível com maiúsculas e minúsculas)
     caminho_logo = None
     for nome in ["logo.png", "Logo.png", "logo.jpg", "Logo.jpg"]:
         if os.path.exists(nome):
             caminho_logo = nome
             break
 
-    # Exibe a logo perfeitamente centralizada
     col_l1, col_l2, col_l3 = st.columns([1, 0.8, 1])
     with col_l2:
         if caminho_logo:
@@ -160,7 +172,6 @@ st.title("🗂️ Gerador de Remessa RAAS-Divisópolis (CAPS-I)")
 st.markdown("### ⚙️ Competência, Versão & Gerenciamento de Lote")
 col_comp1, col_comp1_v, col_comp2, col_comp3 = st.columns([1, 0.8, 1.5, 1.5])
 
-# Se for admin, pode alterar. Se for digitador, o campo fica travado/fixo.
 with col_comp1:
     if st.session_state.usuario_logado == "admin":
         competencia_input = st.text_input("Competência Ativa (AAAAMM)", "202608")
@@ -407,10 +418,21 @@ with col_form:
                         "dt_atend": dt_atend_conv, "procedimento": procedimento.strip().zfill(10),
                         "quantidade": quantidade.strip().zfill(6) if quantidade.strip() else "000001", "servico": servico.strip().zfill(3) if servico.strip() else "115",
                         "classificacao": classificacao.strip().zfill(3) if classificacao.strip() else "002", "cns_prof": dados_prof["cns"].zfill(15),
-                        "cbo": dados_prof["cbo"].zfill(6), "local_realizacao": local_realizacao[0]
+                        "cbo": dados_prof["cbo"].zfill(6), "local_realizacao": local_realizacao[0], "competencia": competencia_input
                     }
+                    
                     st.session_state.atendimentos.append(novo_registro)
-                    st.success(f"Atendimento de {novo_registro['nome_user']} adicionado com sucesso!")
+                    
+                    # Salva automaticamente na planilha do Google Sheets com tratamento de erro
+                    if conn is not None:
+                        try:
+                            df_atualizado = pd.DataFrame(st.session_state.atendimentos)
+                            conn.update(data=df_atualizado)
+                        except Exception as e:
+                            st.error(f"Erro ao salvar na planilha online: {e}")
+                            
+                    st.success(f"Atendimento de {novo_registro['nome_user']} adicionado e salvo online com sucesso!")
+                    st.rerun()
 
 with col_hist:
     st.subheader("📋 Histórico do Lote Atual")
@@ -433,6 +455,12 @@ with col_hist:
                 st.write(f"**CID:** {reg['cid_principal']} | **Mãe:** {reg['nome_mae']}")
                 if st.button("🗑️ Excluir este lançamento", key=f"del_{idx}"):
                     st.session_state.atendimentos.pop(idx)
+                    if conn is not None:
+                        try:
+                            df_atualizado = pd.DataFrame(st.session_state.atendimentos)
+                            conn.update(data=df_atualizado if not df_atualizado.empty else pd.DataFrame(columns=["cnes"]))
+                        except Exception:
+                            pass
                     st.rerun()
 
     st.markdown("---")
@@ -448,28 +476,28 @@ with col_hist:
             
             for reg in st.session_state.atendimentos:
                 sub16_total += int(reg["procedimento"]) + int(reg["quantidade"])
-                sub15_total += int(reg["cnes"]) + int(int(reg["cpf_user"]) if reg["cpf_user"].isdigit() else 0)
+                sub15_total += int(reg["cnes"]) + int(int(reg["cpf_user"]) if str(reg["cpf_user"]).isdigit() else 0)
                 
                 linha15 = (
-                    "15" + codigo_uf + ano_mes + reg["cnes"] + reg["cns_user"] + reg["dt_admissao"] + 
-                    "".ljust(8, ' ') + reg["nome_user"].ljust(30, ' ')[:30] + reg["prontuario"] + 
-                    reg["nome_mae"].ljust(30, ' ')[:30] + reg["logradouro"] + reg["numero"] + 
-                    reg["complemento"] + reg["cep"] + reg["municipio"] + reg["dt_nasc"] + 
-                    reg["sexo"] + reg["raca"] + reg["nome_resp"].ljust(30, ' ')[:30] + 
-                    "010" + reg["etnia"] + reg["tel_contato"] + reg["tel_cel"] + 
-                    reg["destino_usuario"] + reg["dt_conclusao"] + reg["cid_principal"] + 
-                    "".ljust(4, ' ') + "".ljust(4, ' ') + "".ljust(4, ' ') + reg["cid_associado"] + 
-                    reg["carater_atend"] + reg["origem_usuario"] + reg["cobertura_esf"] + 
-                    reg["cnes_esf"] + "00001" + reg["destino_usuario"] + "RAS" + reg["situacao_rua"] + 
-                    reg["usu_droga"] + reg["tipo_droga"] + "".ljust(13, ' ') + reg["bairro"] + 
-                    reg["tipo_log"] + "".ljust(40, ' ') + reg["cpf_user"] + "".ljust(4, ' ')
+                    "15" + codigo_uf + ano_mes + str(reg["cnes"]) + str(reg["cns_user"]) + str(reg["dt_admissao"]) + 
+                    "".ljust(8, ' ') + str(reg["nome_user"]).ljust(30, ' ')[:30] + str(reg["prontuario"]) + 
+                    str(reg["nome_mae"]).ljust(30, ' ')[:30] + str(reg["logradouro"]) + str(reg["numero"]) + 
+                    str(reg["complemento"]) + str(reg["cep"]) + str(reg["municipio"]) + str(reg["dt_nasc"]) + 
+                    str(reg["sexo"]) + str(reg["raca"]) + str(reg["nome_resp"]).ljust(30, ' ')[:30] + 
+                    "010" + str(reg["etnia"]) + str(reg["tel_contato"]) + str(reg["tel_cel"]) + 
+                    str(reg["destino_usuario"]) + str(reg["dt_conclusao"]) + str(reg["cid_principal"]) + 
+                    "".ljust(4, ' ') + "".ljust(4, ' ') + "".ljust(4, ' ') + str(reg["cid_associado"]) + 
+                    str(reg["carater_atend"]) + str(reg["origem_usuario"]) + str(reg["cobertura_esf"]) + 
+                    str(reg["cnes_esf"]) + "00001" + str(reg["destino_usuario"]) + "RAS" + str(reg["situacao_rua"]) + 
+                    str(reg["usu_droga"]) + str(reg["tipo_droga"]) + "".ljust(13, ' ') + str(reg["bairro"]) + 
+                    str(reg["tipo_log"]) + "".ljust(40, ' ') + str(reg["cpf_user"]) + "".ljust(4, ' ')
                 )
                 
                 linha16 = (
-                    "16" + codigo_uf + ano_mes + reg["cnes"] + reg["cns_user"] + reg["dt_admissao"] + 
-                    reg["procedimento"] + reg["cbo"] + reg["cns_prof"] + reg["dt_atend"] + 
-                    reg["servico"] + reg["classificacao"] + reg["quantidade"] + "RAS" + 
-                    reg["local_realizacao"] + reg["cpf_user"] + "".ljust(4, ' ')
+                    "16" + codigo_uf + ano_mes + str(reg["cnes"]) + str(reg["cns_user"]) + str(reg["dt_admissao"]) + 
+                    str(reg["procedimento"]) + str(reg["cbo"]) + str(reg["cns_prof"]) + str(reg["dt_atend"]) + 
+                    str(reg["servico"]) + str(reg["classificacao"]) + str(reg["quantidade"]) + "RAS" + 
+                    str(reg["local_realizacao"]) + str(reg["cpf_user"]) + "".ljust(4, ' ')
                 )
                 
                 linhas_detalhe.append(linha15)
