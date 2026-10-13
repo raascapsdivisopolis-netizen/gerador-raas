@@ -5,7 +5,17 @@ from datetime import datetime
 
 st.set_page_config(page_title="Gerador RAAS-PS", layout="wide")
 
-st.title("🗂️ Gerador de Remessa RAAS-DIVISOPOLIS (DATASUS)")
+# --- ESTILIZAÇÃO CSS PARA A TELA DE LOGIN ---
+st.markdown("""
+    <style>
+        /* Estiliza os inputs de texto na tela de login com fundo amarelo claro e borda marrom */
+        div[data-testid="stForm"] input {
+            background-color: #fffde7 !important;
+            border: 1px solid #795548 !important;
+            color: #3e2723 !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 if "atendimentos" not in st.session_state:
     st.session_state.atendimentos = []
@@ -58,7 +68,7 @@ CADASTRO_PROFISSIONAIS = {
     "ALANE DE OLIVEIRA MACEDO": {"cns": "700609921575863", "cbo": "322205"},
 }
 
-# --- SISTEMA DE LOGIN SIMPLES ---
+# --- SISTEMA DE LOGIN COM LOGO CENTRALIZADO ---
 def verificar_senha():
     if "autenticado" not in st.session_state:
         st.session_state.autenticado = False
@@ -66,9 +76,14 @@ def verificar_senha():
     if st.session_state.autenticado:
         return True
 
+    # Exibe o logo centralizado da prefeitura/município
+    col_l1, col_l2, col_l3 = st.columns([1, 1, 1])
+    with col_l2:
+        st.image("https://upload.wikimedia.org/wikipedia/commons/2/2b/Bras%C3%A3o_Divis%C3%B3polis_MG.jpg", width=140)
+
     st.markdown("<h2 style='text-align: center; color: #2e6c80;'>🔐 Acesso Restrito - RAAS-PS Divisópolis</h2>", unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1, 1.5, 1])
+    col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
         with st.form("form_login"):
             usuario = st.text_input("Usuário")
@@ -99,6 +114,8 @@ with st.sidebar:
 # ==========================================
 # INÍCIO DO SISTEMA RAAS-PS
 # ==========================================
+
+st.title("🗂️ Gerador de Remessa RAAS-PS (DATASUS)")
 
 st.markdown("### ⚙️ Competência & Gerenciamento de Lote")
 col_comp1, col_comp2, col_comp3 = st.columns([1, 1.5, 1.5])
@@ -132,13 +149,12 @@ st.markdown("---")
 col_form, col_hist = st.columns([1.3, 1])
 
 with col_form:
-    st.subheader("📝 Formulário de Digitação")
+    st.subheader("📝 Formulário de Digitação (Em Branco)")
     
     with st.form("form_registro", clear_on_submit=False):
         tab_p, tab_a, tab_r = st.tabs(["[ P ] Paciente", "[ A ] Atendimento", "[ R ] Procedimento"])
         
         with tab_p:
-            # CNES atualizado para 7500238
             cnes = st.text_input("CNES Executante", "7500238", max_chars=7)
             
             col1, col2, col3 = st.columns(3)
