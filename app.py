@@ -46,13 +46,22 @@ def conectar_gsheets():
             client = gspread.authorize(creds)
             
             sheet_url = sec.get("spreadsheet")
-            sheet = client.open_by_url(sheet_url).sheet1
-            return sheet
+            planilha = client.open_by_url(sheet_url)
+            
+            # Garante que existe uma aba de configurações
+            try:
+                aba_config = planilha.worksheet("Configuracoes")
+            except Exception:
+                aba_config = planilha.add_worksheet(title="Configuracoes", rows=5, cols=2)
+                aba_config.update([["competencia", "202608"], ["versao", "02.35"]])
+                
+            sheet = planilha.sheet1
+            return sheet, aba_config
     except Exception:
         pass
-    return None
+    return None, None
 
-sheet_conn = conectar_gsheets()
+sheet_conn, aba_config_conn = conectar_gsheets()
 
 if "usuario_logado" not in st.session_state:
     st.session_state.usuario_logado = ""
@@ -62,6 +71,33 @@ if "digitação_habilitada" not in st.session_state:
 
 if "editando_idx" not in st.session_state:
     st.session_state.editando_idx = None
+
+# --- CARREGA CONFIGURAÇÕES DA NUVEM ---
+def carregar_configuracoes():
+    if aba_config_conn is not None:
+        try:
+            dados = aba_config_conn.get_all_records()
+            cfg = {row.get("chave"): row.get("valor") for row in dados if "chave" in row}
+            if not cfg:
+                # Formato alternativo caso seja lista simples
+                linhas = aba_config_conn.get_all_values()
+                cfg = {l[0]: l[1] for l in linhas if len(l) >= 2}
+            return cfg.get("competencia", "202608"), cfg.get("versao", "02.35")
+        except Exception:
+            pass
+    return "202608", "02.35"
+
+def salvar_configuracoes(comp, versao):
+    if aba_config_conn is not None:
+        try:
+            aba_config_conn.clear()
+            aba_config_conn.update([
+                ["chave", "valor"],
+                ["competencia", str(comp)],
+                ["versao", str(versao)]
+            ])
+        except Exception:
+            pass
 
 # --- CARREGA DADOS DO BANCO ONLINE (GOOGLE SHEETS) ---
 def carregar_atendimentos():
@@ -150,7 +186,6 @@ CADASTRO_PROFISSIONAIS = {
 
 INVERSO_PROFISSIONAIS = {v["cns"]: k for k, v in CADASTRO_PROFISSIONAIS.items() if v["cns"] != ""}
 
-# --- TABELA COMPLETA COM OS 29 PROCEDIMENTOS PSICOSSOCIAIS EXTRAÍDOS DO PDF OFICIAL ---
 TABELA_PROCEDIMENTOS = [
     {
         "codigo": "0301080011",
@@ -244,7 +279,7 @@ TABELA_PROCEDIMENTOS = [
     },
     {
         "codigo": "0301080291",
-        "descricao": "ATENÇÃO ÀS SITUAÇÕES DE CRISE",
+        "descricao": "ATENÇÃO Às SITUAÇÕES DE CRISE",
         "cbos": ["223119", "223150", "2231A1", "2231F8", "2231F9", "2231G1", "223505", "223510", "223515", "223520", "223525", "223530", "223535", "223540", "223545", "223550", "223555", "223560", "223565", "223570", "2235C3", "223810", "223905", "225103", "225105", "225106", "225109", "225110", "225112", "225115", "225118", "225120", "225121", "225122", "225124", "225125", "225127", "225130", "225133", "225135", "225136", "225139", "225140", "225142", "225145", "225148", "225150", "225151", "225155", "225160", "225165", "225170", "225175", "225180", "225185", "225195", "225203", "225210", "225215", "225220", "225225", "225230", "225235", "225240", "225250", "225255", "225260", "225265", "225270", "225275", "225280", "225285", "225290", "225295", "225305", "225310", "225315", "225320", "225325", "225330", "225335", "225340", "225345", "225350", "226305", "239415", "251510", "251530", "251545", "251605", "322205", "322230", "515305", "515310", "516220", "791115"]
     },
     {
@@ -353,6 +388,9 @@ def verificar_senha():
 if not verificar_senha():
     st.stop()
 
+# Carrega competência e versão salvas na nuvem
+competencia_salva, versao_salva = carregar_configuracoes()
+
 # --- PAINEL DE CONTROLE NA BARRA LATERAL ---
 with st.sidebar:
     st.write(f"👤 **Logado como:** `{st.session_state.usuario_logado}`")
@@ -384,17 +422,21 @@ col_comp1, col_comp1_v, col_comp2, col_comp3 = st.columns([1, 0.8, 1.5, 1.5])
 
 with col_comp1:
     if st.session_state.usuario_logado == "admin":
-        competencia_input = st.text_input("Competência Ativa (AAAAMM)", "202608")
+        competencia_input = st.text_input("Competência Ativa (AAAAMM)", competencia_salva)
+        if competencia_input != competencia_salva:
+            salvar_configuracoes(competencia_input, versao_salva)
     else:
-        competencia_input = "202608"
-        st.text_input("Competência Ativa (AAAAMM)", value="202608", disabled=True)
+        competencia_input = competencia_salva
+        st.text_input("Competência Ativa (AAAAMM)", value=competencia_salva, disabled=True)
 
 with col_comp1_v:
     if st.session_state.usuario_logado == "admin":
-        versao_raas = st.text_input("Versão do RAAS", "02.35")
+        versao_raas = st.text_input("Versão do RAAS", versao_salva)
+        if versao_raas != versao_salva:
+            salvar_configuracoes(competencia_input, versao_raas)
     else:
-        versao_raas = "02.35"
-        st.text_input("Versão do RAAS", value="02.35", disabled=True)
+        versao_raas = versao_salva
+        st.text_input("Versão do RAAS", value=versao_salva, disabled=True)
 
 with col_comp2:
     if len(st.session_state.atendimentos) > 0:
@@ -422,7 +464,6 @@ st.markdown("---")
 
 col_form, col_hist = st.columns([1.3, 1])
 
-# Carrega dados para preenchimento se estiver editando
 dados_edicao = {}
 if st.session_state.editando_idx is not None and 0 <= st.session_state.editando_idx < len(st.session_state.atendimentos):
     dados_edicao = st.session_state.atendimentos[st.session_state.editando_idx]
@@ -620,7 +661,6 @@ with col_form:
 
                 st.markdown("##### Procedimento SIGTAP Compatível com o CBO")
                 
-                # FILTRO DINÂMICO DE PROCEDIMENTOS BASEADO NO CBO DO PROFISSIONAL
                 procedimentos_compativeis = [
                     p for p in TABELA_PROCEDIMENTOS if cbo_atual in p["cbos"]
                 ] if cbo_atual else []
@@ -632,7 +672,6 @@ with col_form:
                         opcoes_proc_dict[rotulo] = p['codigo']
                 
                 proc_salvo = dados_edicao.get("procedimento", "")
-                label_proc_inicial = "Selecione o Procedimento..."
                 lista_opcoes_proc = ["Selecione o Procedimento..."] + list(opcoes_proc_dict.keys())
                 
                 proc_idx = 0
@@ -648,7 +687,6 @@ with col_form:
                     index=proc_idx
                 )
 
-                # Define o código do procedimento escolhido
                 if proc_selecionado_box != "Selecione o Procedimento...":
                     procedimento = opcoes_proc_dict[proc_selecionado_box]
                 else:
