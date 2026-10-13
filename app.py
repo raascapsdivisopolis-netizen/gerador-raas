@@ -54,29 +54,29 @@ with col_form:
             with col1:
                 prontuario = st.text_input("Prontuário", "0000000001", max_chars=10)
             with col2:
-                cpf_user = st.text_input("CPF do Paciente (11 dígitos)", "", max_chars=11)
+                cpf_user = st.text_input("CPF do Paciente (11 dígitos)", "06914796661", max_chars=11)
             with col3:
                 cns_user = st.text_input("CNS do Paciente (ou Zeros)", "000000000000000", max_chars=15)
                 
             col4, col5, col6 = st.columns(3)
             with col4:
-                nome_user = st.text_input("Nome do Paciente", "")
+                nome_user = st.text_input("Nome do Paciente", "ISMEAL CESAR")
             with col5:
                 sexo = st.selectbox("Sexo", ["M", "F"])
             with col6:
-                dt_nasc = st.text_input("Data Nascimento (AAAAMMDD)", "")
+                dt_nasc = st.text_input("Data Nascimento (AAAAMMDD)", "19850907")
                 
             col7, col8 = st.columns(2)
             with col7:
-                raca_opt = st.selectbox("Raça/Cor", ["01 - Branca", "02 - Preta", "03 - Parda", "04 - Amarela", "05 - Indígena"], index=2)
+                raca_opt = st.selectbox("Raça/Cor", ["01 - Branca", "02 - Preta", "03 - Parda", "04 - Amarela", "05 - Indígena"], index=3)
             with col8:
                 etnia = st.text_input("Etnia (2 dígitos)", "00", max_chars=2)
                 
             col9, col10 = st.columns(2)
             with col9:
-                nome_mae = st.text_input("Nome da Mãe", "")
+                nome_mae = st.text_input("Nome da Mãe", "NELAI MARIA")
             with col10:
-                nome_resp = st.text_input("Nome do Responsável", "")
+                nome_resp = st.text_input("Nome do Responsável", "APOLINARIO BORGES")
                 
             st.markdown("##### Endereço")
             col11, col12, col13 = st.columns(3)
@@ -89,9 +89,9 @@ with col_form:
                 
             col14, col15, col16 = st.columns(3)
             with col14:
-                tipo_log = st.text_input("Cód. Tipo Logradouro (3 dígitos)", "000", max_chars=3)
+                tipo_log = st.text_input("Cód. Tipo Logradouro (3 dígitos)", "081", max_chars=3)
             with col15:
-                logradouro = st.text_input("Nome Logradouro", "RUA JOSE FERRAZ")
+                logradouro = st.text_input("Nome Logradouro", "APOLINARIO BORGES")
             with col16:
                 numero = st.text_input("Número", "00064", max_chars=5)
                 
@@ -99,7 +99,7 @@ with col_form:
             with col17:
                 complemento = st.text_input("Complemento", "CASA")
             with col18:
-                tel_cel = st.text_input("Tel. Celular (11 dígitos)", "99339999999", max_chars=11)
+                tel_cel = st.text_input("Tel. Celular (11 dígitos)", "39912000312", max_chars=11)
             with col19:
                 tel_contato = st.text_input("Tel. Contato (11 dígitos)", "99999999999", max_chars=11)
             with col20:
@@ -108,7 +108,7 @@ with col_form:
         with tab_a:
             col21, col22, col22b = st.columns(3)
             with col21:
-                dt_admissao = st.text_input("Data Admissão (AAAAMMDD)", "")
+                dt_admissao = st.text_input("Data Admissão (AAAAMMDD)", "20260812")
             with col22:
                 carater_opt = st.selectbox("Caráter Atendimento", ["01 - Eletivo", "02 - Urgência"], index=0)
             with col22b:
@@ -130,9 +130,9 @@ with col_form:
             st.markdown("##### Cobertura ESF")
             col25, col26 = st.columns(2)
             with col25:
-                cobertura_esf = st.selectbox("Cobertura ESF?", ["N", "S"], index=0)
+                cobertura_esf = st.selectbox("Cobertura ESF?", ["N", "S"], index=1)
             with col26:
-                cnes_esf = st.text_input("CNES USF (Se ESF=S)", "0000000", max_chars=7)
+                cnes_esf = st.text_input("CNES USF (Se ESF=S)", "2119811", max_chars=7)
                 
             col27, col28 = st.columns(2)
             with col27:
@@ -143,13 +143,13 @@ with col_form:
         with tab_r:
             col29, col30 = st.columns(2)
             with col29:
-                dt_atend = st.text_input("Data do Procedimento (AAAAMMDD)", "")
+                dt_atend = st.text_input("Data do Procedimento (AAAAMMDD)", "20260812")
             with col30:
                 procedimento = st.text_input("Procedimento SIGTAP (10 dígitos)", "0301080020", max_chars=10)
                 
             col31, col32, col33 = st.columns(3)
             with col31:
-                quantidade = st.text_input("Quantidade", "1", max_chars=6)
+                quantidade = st.text_input("Quantidade", "2", max_chars=6)
             with col32:
                 servico = st.text_input("Serviço (3 dígitos)", "115", max_chars=3)
             with col33:
@@ -159,7 +159,7 @@ with col_form:
             with col34:
                 cns_prof = st.text_input("CNS Profissional (15 dígitos)", "702805644714369", max_chars=15)
             with col35:
-                cbo = st.text_input("CBO Profissional (6 dígitos)", "225125", max_chars=6)
+                cbo = st.text_input("CBO Profissional (6 dígitos)", "225142", max_chars=6)
             with col36:
                 local_realizacao = st.selectbox("Local Realização", ["C - CAPS", "T - Território"], index=0)
 
@@ -213,7 +213,6 @@ with col_hist:
     if total_digitados == 0:
         st.info("Nenhum atendimento adicionado ainda.")
     else:
-        # Exibe os últimos 20 registros digitados
         ultimos = list(enumerate(st.session_state.atendimentos))[-20:][::-1]
         for idx, reg in ultimos:
             with st.expander(f"👤 {reg['nome_user']} (CPF: {reg['cpf_user']})"):
@@ -238,8 +237,7 @@ with col_hist:
                 sub16_total += int(reg["procedimento"]) + int(reg["quantidade"])
                 sub15_total += int(reg["cnes"]) + int(int(reg["cpf_user"]) if reg["cpf_user"].isdigit() else 0)
                 
-                # Linha 15 rigorosamente alinhada segundo a tabela técnica do DATASUS (Abril/2025)
-                # Posição 1 a 406
+                # Linha 15 perfeitamente alinhada sem vazamentos ou campos em branco
                 linha15 = (
                     "15" +                                                 # 001-002
                     codigo_uf +                                            # 003-004
@@ -260,7 +258,7 @@ with col_hist:
                     reg["sexo"] +                                          # 187-187
                     reg["raca"] +                                          # 188-189
                     reg["nome_resp"].ljust(30, ' ')[:30] +                 # 190-219
-                    "105" +                                                # 220-222 (Código numérico Brasil)
+                    "105" +                                                # 220-222 (Código Brasil)
                     reg["etnia"] +                                         # 223-226
                     reg["tel_contato"] +                                   # 227-237
                     reg["tel_cel"] +                                       # 238-248
