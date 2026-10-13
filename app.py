@@ -13,6 +13,15 @@ st.markdown("""
             background-color: #fffde7 !important;
             border: 1px solid #795548 !important;
             color: #3e2723 !important;
+            font-weight: 500;
+        }
+        
+        /* Ajusta o card de formulário para dar destaque */
+        div[data-testid="stForm"] {
+            border-radius: 10px;
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e0e0e0;
+            padding: 25px;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -68,7 +77,7 @@ CADASTRO_PROFISSIONAIS = {
     "ALANE DE OLIVEIRA MACEDO": {"cns": "700609921575863", "cbo": "322205"},
 }
 
-# --- SISTEMA DE LOGIN COM LOGO CENTRALIZADO ---
+# --- SISTEMA DE LOGIN COM CABEÇALHO DA PREFEITURA ---
 def verificar_senha():
     if "autenticado" not in st.session_state:
         st.session_state.autenticado = False
@@ -76,12 +85,19 @@ def verificar_senha():
     if st.session_state.autenticado:
         return True
 
-    # Exibe o logo centralizado da prefeitura/município
-    col_l1, col_l2, col_l3 = st.columns([1, 1, 1])
-    with col_l2:
-        st.image("https://upload.wikimedia.org/wikipedia/commons/2/2b/Bras%C3%A3o_Divis%C3%B3polis_MG.jpg", width=140)
-
-    st.markdown("<h2 style='text-align: center; color: #2e6c80;'>🔐 Acesso Restrito - RAAS-PS Divisópolis</h2>", unsafe_allow_html=True)
+    # Header estilizado com identificação municipal
+    st.markdown("""
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 14px; font-weight: bold; color: #555; text-transform: uppercase; letter-spacing: 1px;">
+                PREFEITURA MUNICIPAL DE DIVISÓPOLIS - MG
+            </div>
+            <div style="font-size: 12px; color: #777;">
+                SECRETARIA MUNICIPAL DE SAÚDE - CAPS
+            </div>
+            <hr style="width: 120px; border: 1px solid #2e6c80; margin: 10px auto;">
+            <h2 style="color: #2e6c80; margin-top: 5px;">Acesso Restrito - RAAS-PS</h2>
+        </div>
+    """, unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
