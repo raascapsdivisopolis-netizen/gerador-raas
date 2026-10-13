@@ -6,33 +6,37 @@ import os
 
 st.set_page_config(page_title="Gerador RAAS-PS", layout="wide")
 
-# --- ESTILIZAÇÃO CSS COM EFEITO VITRIFICADO E CAMPOS ALINHADOS ---
+# --- ESTILIZAÇÃO CSS COMPLETA E FORMULÁRIO VITRIFICADO UNIVERSAL ---
 st.markdown("""
     <style>
-        /* Padroniza a largura de todos os inputs de texto e senha do formulário */
+        /* Esconde elementos padrão indesejados da tela de login se necessário */
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+
+        /* Estilização universal do card de login e inputs com Glassmorphism */
+        .login-card {
+            max-width: 420px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px 0 rgba(31, 38, 135, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            padding: 30px;
+        }
+
+        /* Padroniza perfeitamente os inputs do Streamlit para largura total idêntica */
         div[data-testid="stForm"] input {
-            background-color: rgba(255, 253, 231, 0.85) !important;
+            background-color: rgba(255, 253, 231, 0.9) !important;
             border: 1px solid #795548 !important;
             color: #3e2723 !important;
             font-weight: 500;
-        }
-        
-        /* Força a largura total exata no container do input de senha */
-        div[data-testid="stForm"] div[data-baseweb="input"] {
             width: 100% !important;
         }
-        
-        /* Card de login com efeito vitrificado (Glassmorphism) e sombra suave */
-        div[data-testid="stForm"] {
-            max-width: 420px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.55) !important;
-            backdrop-filter: blur(12px) !important;
-            -webkit-backdrop-filter: blur(12px) !important;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px 0 rgba(31, 38, 135, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            padding: 30px;
+
+        div[data-testid="stForm"] div[data-baseweb="input"] {
+            width: 100% !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -96,7 +100,7 @@ def verificar_senha():
     if st.session_state.autenticado:
         return True
 
-    # Busca a imagem da logo
+    # Busca a imagem da logo (compatível com maiúsculas/minúsculas)
     caminho_logo = None
     for nome in ["logo.png", "Logo.png", "logo.jpg", "Logo.jpg"]:
         if os.path.exists(nome):
@@ -124,6 +128,7 @@ def verificar_senha():
     
     col1, col2, col3 = st.columns([1, 1.3, 1])
     with col2:
+        st.markdown('<div class="login-card">', unsafe_allow_html=True)
         with st.form("form_login"):
             usuario = st.text_input("Usuário")
             senha = st.text_input("Senha", type="password")
@@ -138,6 +143,7 @@ def verificar_senha():
                     st.rerun()
                 else:
                     st.error("Usuário ou senha incorretos!")
+        st.markdown('</div>', unsafe_allow_html=True)
     return False
 
 if not verificar_senha():
@@ -390,96 +396,4 @@ with col_form:
                     "usu_droga": usu_droga[0], "tipo_droga": str_droga,
                     "cobertura_esf": cobertura_esf[0], "cnes_esf": cnes_esf.strip().zfill(7) if cobertura_esf.startswith("S") else "0".zfill(7),
                     "destino_usuario": destino_opt[:2], "dt_conclusao": dt_conclusao_conv,
-                    "dt_atend": dt_atend_conv, "procedimento": procedimento.strip().zfill(10),
-                    "quantidade": quantidade.strip().zfill(6) if quantidade.strip() else "000001", "servico": servico.strip().zfill(3) if servico.strip() else "115",
-                    "classificacao": classificacao.strip().zfill(3) if classificacao.strip() else "001", "cns_prof": dados_prof["cns"].zfill(15),
-                    "cbo": dados_prof["cbo"].zfill(6), "local_realizacao": local_realizacao[0]
-                }
-                st.session_state.atendimentos.append(novo_registro)
-                st.success(f"Atendimento de {novo_registro['nome_user']} adicionado com sucesso!")
-
-with col_hist:
-    st.subheader("📋 Histórico do Lote Atual")
-    
-    cpfs_unicos = set(reg['cpf_user'] for reg in st.session_state.atendimentos)
-    total_pacientes = len(cpfs_unicos)
-    total_registros_brutos = len(st.session_state.atendimentos)
-    
-    st.metric(label="Total de Pacientes no Lote", value=total_pacientes)
-    if total_registros_brutos > total_pacientes:
-        st.caption(f"*(Total de {total_registros_brutos} ações/procedimentos registrados)*")
-    
-    if total_registros_brutos == 0:
-        st.info("Nenhum atendimento adicionado ainda.")
-    else:
-        ultimos = list(enumerate(st.session_state.atendimentos))[-20:][::-1]
-        for idx, reg in ultimos:
-            with st.expander(f"👤 {reg['nome_user']} (CPF: {reg['cpf_user']})"):
-                st.write(f"**Procedimento:** {reg['procedimento']} | **Data:** {reg['dt_atend']}")
-                st.write(f"**CID:** {reg['cid_principal']} | **Mãe:** {reg['nome_mae']}")
-                if st.button("🗑️ Excluir este lançamento", key=f"del_{idx}"):
-                    st.session_state.atendimentos.pop(idx)
-                    st.rerun()
-
-    st.markdown("---")
-    if total_registros_brutos > 0:
-        if st.button("💾 Gerar e Baixar Arquivo Oficial (AA312245)", type="primary"):
-            ano_mes = competencia_input.strip()
-            codigo_uf = "31"
-            data_geracao = "20261012"
-            
-            linhas_detalhe = []
-            sub16_total = 0
-            sub15_total = 0
-            
-            for reg in st.session_state.atendimentos:
-                sub16_total += int(reg["procedimento"]) + int(reg["quantidade"])
-                sub15_total += int(reg["cnes"]) + int(int(reg["cpf_user"]) if reg["cpf_user"].isdigit() else 0)
-                
-                linha15 = (
-                    "15" + codigo_uf + ano_mes + reg["cnes"] + reg["cns_user"] + reg["dt_admissao"] + 
-                    "".ljust(8, ' ') + reg["nome_user"].ljust(30, ' ')[:30] + reg["prontuario"] + 
-                    reg["nome_mae"].ljust(30, ' ')[:30] + reg["logradouro"] + reg["numero"] + 
-                    reg["complemento"] + reg["cep"] + reg["municipio"] + reg["dt_nasc"] + 
-                    reg["sexo"] + reg["raca"] + reg["nome_resp"].ljust(30, ' ')[:30] + 
-                    "010" + reg["etnia"] + reg["tel_contato"] + reg["tel_cel"] + 
-                    reg["destino_usuario"] + reg["dt_conclusao"] + reg["cid_principal"] + 
-                    "".ljust(4, ' ') + "".ljust(4, ' ') + "".ljust(4, ' ') + reg["cid_associado"] + 
-                    reg["carater_atend"] + reg["origem_usuario"] + reg["cobertura_esf"] + 
-                    reg["cnes_esf"] + "00001" + reg["destino_usuario"] + "RAS" + reg["situacao_rua"] + 
-                    reg["usu_droga"] + reg["tipo_droga"] + "".ljust(13, ' ') + reg["bairro"] + 
-                    reg["tipo_log"] + "".ljust(40, ' ') + reg["cpf_user"] + "".ljust(4, ' ')
-                )
-                
-                linha16 = (
-                    "16" + codigo_uf + ano_mes + reg["cnes"] + reg["cns_user"] + reg["dt_admissao"] + 
-                    reg["procedimento"] + reg["cbo"] + reg["cns_prof"] + reg["dt_atend"] + 
-                    reg["servico"] + reg["classificacao"] + reg["quantidade"] + "RAS" + 
-                    reg["local_realizacao"] + reg["cpf_user"] + "".ljust(4, ' ')
-                )
-                
-                linhas_detalhe.append(linha15)
-                linhas_detalhe.append(linha16)
-            
-            soma_ctrl = str(1111 + ((sub16_total + sub15_total) % 1111)).zfill(4)
-            qtd_folhas_str = str(total_registros_brutos).zfill(6)
-            sufixo_comp_b = f"{ano_mes}b"
-            
-            cabecalho = (
-                "01" + "#RAS#" + ano_mes + qtd_folhas_str + soma_ctrl + 
-                "SMS DIVISOPOLIS               ".ljust(30, ' ') + 
-                "SMS   ".ljust(6, ' ') + "66234311000123".zfill(14) + 
-                "SMS DIVISOPOLIS                         ".ljust(40, ' ') + 
-                "M" + data_geracao + "02.35          " + sufixo_comp_b
-            )
-            
-            conteudo_final = cabecalho + "\r\n" + "\r\n".join(linhas_detalhe) + "\r\n"
-            b_io = io.BytesIO(conteudo_final.encode("cp1252", errors="ignore"))
-            
-            st.success("Remessa gerada com sucesso!")
-            st.download_button(
-                label="📥 Baixar Arquivo Remessa AA312245",
-                data=b_io,
-                file_name="AA312245",
-                mime="application/octet-stream"
-            )
+                    "dt_atend": dt_atend_conv, "procedimento": procedimento.strip().zfill(
