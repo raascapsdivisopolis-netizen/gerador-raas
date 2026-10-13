@@ -132,10 +132,10 @@ with st.sidebar:
         st.rerun()
 
 # ==========================================
-# INÍCIO DO SISTEMA RAAS-Divisópolis
+# INÍCIO DO SISTEMA RAAS-PS
 # ==========================================
 
-st.title("🗂️ Gerador de Remessa RAAS-Divisópolis (CAPS-I)")
+st.title("🗂️ Gerador de Remessa RAAS-PS (DATASUS)")
 
 st.markdown("### ⚙️ Competência & Gerenciamento de Lote")
 col_comp1, col_comp2, col_comp3 = st.columns([1, 1.5, 1.5])
@@ -169,7 +169,7 @@ st.markdown("---")
 col_form, col_hist = st.columns([1.3, 1])
 
 with col_form:
-    st.subheader("📝 Cadastro de paciente e atendimento")
+    st.subheader("📝 Formulário de Digitação (Em Branco)")
     
     with st.form("form_registro", clear_on_submit=False):
         tab_p, tab_a, tab_r = st.tabs(["[ P ] Paciente", "[ A ] Atendimento", "[ R ] Procedimento"])
@@ -292,12 +292,8 @@ with col_form:
             with col33:
                 classificacao = st.text_input("Classificação (3 dígitos)", "002", max_chars=3)
                 
-            col34, col35, col36 = st.columns(3)
+            col34, col35 = st.columns(2)
             with col34:
-                cns_prof = st.text_input("CNS Profissional", value=dados_prof["cns"], max_chars=15, key="input_cns_prof")
-            with col35:
-                cbo = st.text_input("CBO Profissional", value=dados_prof["cbo"], max_chars=6, key="input_cbo_prof")
-            with col36:
                 local_realizacao = st.selectbox("Local Realização", ["", "C - CAPS", "T - Território"])
 
             submitted = st.form_submit_button("➕ Adicionar Lançamento ao Lote", type="primary", use_container_width=True)
@@ -344,6 +340,8 @@ with col_form:
                 st.error("O CID Principal deve ter 4 caracteres (Ex: F411)!")
             elif not procedimento.strip():
                 st.error("O código do Procedimento SIGTAP é obrigatório!")
+            elif prof_selecionado == "Selecione o Profissional...":
+                st.error("Selecione o Profissional Executante!")
             else:
                 str_droga = ""
                 if usu_droga == "S":
@@ -450,17 +448,4 @@ with col_hist:
                 "01" + "#RAS#" + ano_mes + qtd_folhas_str + soma_ctrl + 
                 "SMS DIVISOPOLIS               ".ljust(30, ' ') + 
                 "SMS   ".ljust(6, ' ') + "66234311000123".zfill(14) + 
-                "SMS DIVISOPOLIS                         ".ljust(40, ' ') + 
-                "M" + data_geracao + "02.35          " + sufixo_comp_b
-            )
-            
-            conteudo_final = cabecalho + "\r\n" + "\r\n".join(linhas_detalhe) + "\r\n"
-            b_io = io.BytesIO(conteudo_final.encode("cp1252", errors="ignore"))
-            
-            st.success("Remessa gerada com sucesso!")
-            st.download_button(
-                label="📥 Baixar Arquivo Remessa AA312245",
-                data=b_io,
-                file_name="AA312245",
-                mime="application/octet-stream"
-            )
+                "SMS
