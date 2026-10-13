@@ -10,10 +10,9 @@ if "atendimentos" not in st.session_state:
     st.session_state.atendimentos = []
 
 # --- CADASTRO INTELIGENTE DE PROFISSIONAIS ---
-# Edite ou adicione os profissionais da sua unidade aqui:
 CADASTRO_PROFISSIONAIS = {
     "Selecione o Profissional...": {"cns": "000000000000000", "cbo": "000000"},
-    "ALANE DE OLIVEIRA MACEDO  - Téc de Enfermagem": {"cns": "700609921575863", "cbo": "322205"},
+    "Psicólogo(a) - Exemplo": {"cns": "702805644714369", "cbo": "251510"},
     "Enfermeiro(a) - Exemplo": {"cns": "700000000000002", "cbo": "223505"},
     "Médico(a) Psiquiatra - Exemplo": {"cns": "700000000000003", "cbo": "225125"},
     "Assistente Social - Exemplo": {"cns": "700000000000004", "cbo": "251605"},
@@ -61,7 +60,6 @@ with st.sidebar:
 # INÍCIO DO SISTEMA RAAS-PS
 # ==========================================
 
-# --- PAINEL DE CONTROLE DA COMPETÊNCIA E BACKUP ---
 st.markdown("### ⚙️ Competência & Gerenciamento de Lote")
 col_comp1, col_comp2, col_comp3 = st.columns([1, 1.5, 1.5])
 
@@ -94,9 +92,8 @@ st.markdown("---")
 col_form, col_hist = st.columns([1.3, 1])
 
 with col_form:
-    st.subheader("📝 Formulário de Digitação de Atendimento")
+    st.subheader("📝 Formulário de Digitação de Atendimento (Tudo em Maiúsculo)")
     
-    # Formulário principal de cadastro
     with st.form("form_registro", clear_on_submit=False):
         tab_p, tab_a, tab_r = st.tabs(["[ P ] Paciente", "[ A ] Atendimento", "[ R ] Procedimento"])
         
@@ -123,7 +120,7 @@ with col_form:
             with col7:
                 raca_opt = st.selectbox("Raça/Cor", ["01 - Branca", "02 - Preta", "03 - Parda", "04 - Amarela", "05 - Indígena"], index=3)
             with col8:
-                etnia = st.text_input("Etnia (4 dígitos - 0000 se não for indígena)", "0000", max_chars=4)
+                etnia = st.text_input("Etnia (4 dígitos)", "0000", max_chars=4)
                 
             col9, col10 = st.columns(2)
             with col9:
@@ -195,14 +192,12 @@ with col_form:
 
         with tab_r:
             st.markdown("##### Selecione o Profissional")
-            # Usamos session_state para lembrar o profissional escolhido
             prof_selecionado = st.selectbox(
                 "Profissional Executante", 
                 list(CADASTRO_PROFISSIONAIS.keys()),
                 key="select_profissional"
             )
             
-            # Pega os dados automáticos com base na escolha
             dados_prof = CADASTRO_PROFISSIONAIS.get(prof_selecionado, {"cns": "000000000000000", "cbo": "000000"})
             
             col29, col30 = st.columns(2)
@@ -221,10 +216,8 @@ with col_form:
                 
             col34, col35, col36 = st.columns(3)
             with col34:
-                # Preenche automaticamente usando o dicionário
                 cns_prof = st.text_input("CNS Profissional", value=dados_prof["cns"], max_chars=15, key="input_cns_prof")
             with col35:
-                # Preenche automaticamente usando o dicionário
                 cbo = st.text_input("CBO Profissional", value=dados_prof["cbo"], max_chars=6, key="input_cbo_prof")
             with col36:
                 local_realizacao = st.selectbox("Local Realização", ["C - CAPS", "T - Território"], index=0)
@@ -247,19 +240,20 @@ with col_form:
                     if "Outras" in tipo_droga_opt: str_droga += "O"
                 str_droga = str_droga.ljust(3, ' ')[:3]
                 
+                # Conversão forçada para maiúsculo em todos os campos de texto
                 novo_registro = {
                     "cnes": cnes.zfill(7), "prontuario": prontuario.zfill(10), "cpf_user": cpf_limpo,
-                    "cns_user": cns_user.zfill(15), "nome_user": nome_user, "sexo": sexo,
+                    "cns_user": cns_user.zfill(15), "nome_user": nome_user.strip().upper(), "sexo": sexo,
                     "dt_nasc": dt_nasc.zfill(8), "raca": raca_opt[:2], "etnia": etnia.zfill(4),
-                    "nome_mae": nome_mae, "nome_resp": nome_resp if nome_resp else nome_mae,
-                    "cep": cep.zfill(8), "municipio": municipio.zfill(7), "bairro": bairro.ljust(30, ' ')[:30],
-                    "tipo_log": tipo_log.zfill(3), "logradouro": logradouro.ljust(30, ' ')[:30],
-                    "numero": numero.zfill(5), "complemento": complemento.ljust(10, ' ')[:10],
+                    "nome_mae": nome_mae.strip().upper(), "nome_resp": (nome_resp.strip().upper() if nome_resp else nome_mae.strip().upper()),
+                    "cep": cep.zfill(8), "municipio": municipio.zfill(7), "bairro": bairro.strip().upper().ljust(30, ' ')[:30],
+                    "tipo_log": tipo_log.zfill(3), "logradouro": logradouro.strip().upper().ljust(30, ' ')[:30],
+                    "numero": numero.zfill(5), "complemento": complemento.strip().upper().ljust(10, ' ')[:10],
                     "tel_cel": tel_cel.zfill(11), "tel_contato": tel_contato.zfill(11),
                     "situacao_rua": situacao_rua, "dt_admissao": dt_admissao.zfill(8),
                     "carater_atend": carater_opt[:2], "origem_usuario": origem_opt[:2],
-                    "cid_principal": cid_principal.strip().ljust(4, ' ')[:4],
-                    "cid_associado": cid_associado.strip().ljust(4, ' ')[:4] if cid_associado else "".ljust(4, ' '),
+                    "cid_principal": cid_principal.strip().upper().ljust(4, ' ')[:4],
+                    "cid_associado": cid_associado.strip().upper().ljust(4, ' ')[:4] if cid_associado else "".ljust(4, ' '),
                     "usu_droga": usu_droga, "tipo_droga": str_droga,
                     "cobertura_esf": cobertura_esf, "cnes_esf": cnes_esf.zfill(7) if cobertura_esf == "S" else "0".zfill(7),
                     "destino_usuario": destino_opt[:2], "dt_conclusao": dt_conclusao.zfill(8) if dt_conclusao else "".ljust(8, ' '),
@@ -269,14 +263,21 @@ with col_form:
                     "cbo": dados_prof["cbo"].zfill(6), "local_realizacao": local_realizacao[0]
                 }
                 st.session_state.atendimentos.append(novo_registro)
-                st.success(f"Atendimento de {nome_user} adicionado!")
+                st.success(f"Atendimento de {novo_registro['nome_user']} adicionado!")
 
 with col_hist:
     st.subheader("📋 Histórico do Lote Atual")
-    total_digitados = len(st.session_state.atendimentos)
-    st.metric(label="Total de Registros Digitados", value=total_digitados)
     
-    if total_digitados == 0:
+    # Contagem rigorosa baseada em pacientes únicos (CPFs distintos) na remessa
+    cpfs_unicos = set(reg['cpf_user'] for reg in st.session_state.atendimentos)
+    total_pacientes = len(cpfs_unicos)
+    total_registros_brutos = len(st.session_state.atendimentos)
+    
+    st.metric(label="Total de Pacientes no Lote", value=total_pacientes)
+    if total_registros_brutos > total_pacientes:
+        st.caption(f"*(Total de {total_registros_brutos} ações/procedimentos registrados)*")
+    
+    if total_registros_brutos == 0:
         st.info("Nenhum atendimento adicionado ainda.")
     else:
         ultimos = list(enumerate(st.session_state.atendimentos))[-20:][::-1]
@@ -289,7 +290,7 @@ with col_hist:
                     st.rerun()
 
     st.markdown("---")
-    if total_digitados > 0:
+    if total_registros_brutos > 0:
         if st.button("💾 Gerar e Baixar Arquivo Oficial (AA312245)", type="primary"):
             ano_mes = competencia_input.strip()
             codigo_uf = "31"
@@ -329,7 +330,8 @@ with col_hist:
                 linhas_detalhe.append(linha16)
             
             soma_ctrl = str(1111 + ((sub16_total + sub15_total) % 1111)).zfill(4)
-            qtd_folhas_str = str(total_digitados).zfill(6)
+            # O cabeçalho usa a contagem total de folhas/registros detalhe gerados
+            qtd_folhas_str = str(total_registros_brutos).zfill(6)
             sufixo_comp_b = f"{ano_mes}b"
             
             cabecalho = (
