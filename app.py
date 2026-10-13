@@ -1,6 +1,7 @@
 import streamlit as st
 import io
 import json
+from datetime import datetime
 
 st.set_page_config(page_title="Gerador RAAS-PS", layout="wide")
 
@@ -8,6 +9,34 @@ st.title("🗂️ Gerador de Remessa RAAS-PS (DATASUS)")
 
 if "atendimentos" not in st.session_state:
     st.session_state.atendimentos = []
+
+# --- FUNÇÃO AUXILIAR PARA VALIDAR E CONVERTER DATAS DE DDMMAAAA PARA AAAAMMDD ---
+def converter_data_para_sigtap(data_str):
+    """
+    Recebe uma string em formato DDMMAAAA (ex: 12082026) ou DDMMAA (ex: 120826) 
+    e converte para AAAAMMDD (ex: 20260812).
+    Remove barras ou caracteres inválidos automaticamente.
+    Retorna None se a data for inválida.
+    """
+    limpa = ''.join(filter(str.isdigit, data_str))
+    
+    if len(limpa) == 8: # DDMMAAAA
+        dia = limpa[0:2]
+        mes = limpa[2:4]
+        ano = limpa[4:8]
+    elif len(limpa) == 6: # DDMMAA (Assume século 2000)
+        dia = limpa[0:2]
+        mes = limpa[2:4]
+        ano = "20" + limpa[4:6]
+    else:
+        return None
+        
+    try:
+        # Testa se a data é real (ex: evita 31/02)
+        dt_obj = datetime(int(ano), int(mes), int(dia))
+        return dt_obj.strftime("%Y%m%d") # Retorna AAAAMMDD
+    except ValueError:
+        return None
 
 # --- CADASTRO INTELIGENTE DE PROFISSIONAIS ---
 CADASTRO_PROFISSIONAIS = {
@@ -97,7 +126,7 @@ st.markdown("---")
 col_form, col_hist = st.columns([1.3, 1])
 
 with col_form:
-    st.subheader("📝 Formulário de Digitação de Atendimento (Tudo em Maiúsculo)")
+    st.subheader("📝 Formulário de Digitação (Datas em DDMMAAAA)")
     
     with st.form("form_registro", clear_on_submit=False):
         tab_p, tab_a, tab_r = st.tabs(["[ P ] Paciente", "[ A ] Atendimento", "[ R ] Procedimento"])
@@ -119,7 +148,7 @@ with col_form:
             with col5:
                 sexo = st.selectbox("Sexo", ["M", "F"])
             with col6:
-                dt_nasc = st.text_input("Data Nascimento (AAAAMMDD)", "19850907")
+                dt_nasc = st.text_input("Data Nascimento (DDMMAAAA - ex: 07091985)", "07091985", max_chars=10)
                 
             col7, col8 = st.columns(2)
             with col7:
@@ -163,7 +192,7 @@ with col_form:
         with tab_a:
             col21, col22, col22b = st.columns(3)
             with col21:
-                dt_admissao = st.text_input("Data Admissão (AAAAMMDD)", "20260812")
+                dt_admissao = st.text_input("Data Admissão (DDMMAAAA - ex: 12082026)", "12082026", max_chars=10)
             with col22:
                 carater_opt = st.selectbox("Caráter Atendimento", ["01 - Eletivo", "02 - Urgência"], index=0)
             with col22b:
@@ -193,7 +222,7 @@ with col_form:
             with col27:
                 destino_opt = st.selectbox("Destino Usuário", ["00 - Permanência", "01 - Continuidade Outro CAPS", "02 - Continuidade AB", "03 - Alta"], index=0)
             with col28:
-                dt_conclusao = st.text_input("Data Alta/Conclusão (Opcional)", "", max_chars=8)
+                dt_conclusao = st.text_input("Data Alta/Conclusão (DDMMAAAA - Opcional)", "", max_chars=10)
 
         with tab_r:
             st.markdown("##### Selecione o Profissional")
@@ -207,7 +236,7 @@ with col_form:
             
             col29, col30 = st.columns(2)
             with col29:
-                dt_atend = st.text_input("Data do Procedimento (AAAAMMDD)", "20260812")
+                dt_atend = st.text_input("Data do Procedimento (DDMMAAAA - ex: 12082026)", "12082026", max_chars=10)
             with col30:
                 procedimento = st.text_input("Procedimento SIGTAP (10 dígitos)", "0301080020", max_chars=10)
                 
@@ -227,15 +256,29 @@ with col_form:
             with col36:
                 local_realizacao = st.selectbox("Local Realização", ["C - CAPS", "T - Território"], index=0)
 
-            # O botão de envio está alocado estritamente dentro da última aba [ R ] Procedimento
             submitted = st.form_submit_button("➕ Adicionar Lançamento ao Lote", type="primary")
 
         if submitted:
             cpf_limpo = ''.join(filter(str.isdigit, cpf_user)).zfill(11)
+            
+            # Validação das datas convertidas de DDMMAAAA para AAAAMMDD
+            dt_nasc_conv = converter_data_para_sigtap(dt_nasc)
+            dt_admissao_conv = converter_data_para_sigtap(dt_admissao)
+            dt_atend_conv = converter_data_para_sigtap(dt_atend)
+            dt_conclusao_conv = converter_data_para_sigtap(dt_conclusao) if dt_conclusao.strip() else "".ljust(8, ' ')
+
             if len(cpf_limpo) != 11 or cpf_limpo == "00000000000":
                 st.error("Informe um CPF válido com 11 dígitos!")
             elif not nome_user or not nome_mae:
                 st.error("Nome do Paciente e Nome da Mãe são obrigatórios!")
+            elif not dt_nasc_conv:
+                st.error("Data de Nascimento inválida! Use o formato DDMMAAAA (ex: 07091985).")
+            elif not dt_admissao_conv:
+                st.error("Data de Admissão inválida! Use o formato DDMMAAAA (ex: 12082026).")
+            elif not dt_atend_conv:
+                st.error("Data do Procedimento inválida! Use o formato DDMMAAAA (ex: 12082026).")
+            elif dt_conclusao.strip() and not dt_conclusao_conv:
+                st.error("Data de Conclusão/Alta inválida! Use o formato DDMMAAAA.")
             elif len(cid_principal.strip()) < 4:
                 st.error("O CID Principal deve ter 4 caracteres (Ex: F411)!")
             else:
@@ -249,20 +292,20 @@ with col_form:
                 novo_registro = {
                     "cnes": cnes.zfill(7), "prontuario": prontuario.zfill(10), "cpf_user": cpf_limpo,
                     "cns_user": cns_user.zfill(15), "nome_user": nome_user.strip().upper(), "sexo": sexo,
-                    "dt_nasc": dt_nasc.zfill(8), "raca": raca_opt[:2], "etnia": etnia.zfill(4),
+                    "dt_nasc": dt_nasc_conv, "raca": raca_opt[:2], "etnia": etnia.zfill(4),
                     "nome_mae": nome_mae.strip().upper(), "nome_resp": (nome_resp.strip().upper() if nome_resp else nome_mae.strip().upper()),
                     "cep": cep.zfill(8), "municipio": municipio.zfill(7), "bairro": bairro.strip().upper().ljust(30, ' ')[:30],
                     "tipo_log": tipo_log.zfill(3), "logradouro": logradouro.strip().upper().ljust(30, ' ')[:30],
                     "numero": numero.zfill(5), "complemento": complemento.strip().upper().ljust(10, ' ')[:10],
                     "tel_cel": tel_cel.zfill(11), "tel_contato": tel_contato.zfill(11),
-                    "situacao_rua": situacao_rua, "dt_admissao": dt_admissao.zfill(8),
+                    "situacao_rua": situacao_rua, "dt_admissao": dt_admissao_conv,
                     "carater_atend": carater_opt[:2], "origem_usuario": origem_opt[:2],
                     "cid_principal": cid_principal.strip().upper().ljust(4, ' ')[:4],
                     "cid_associado": cid_associado.strip().upper().ljust(4, ' ')[:4] if cid_associado else "".ljust(4, ' '),
                     "usu_droga": usu_droga, "tipo_droga": str_droga,
                     "cobertura_esf": cobertura_esf, "cnes_esf": cnes_esf.zfill(7) if cobertura_esf == "S" else "0".zfill(7),
-                    "destino_usuario": destino_opt[:2], "dt_conclusao": dt_conclusao.zfill(8) if dt_conclusao else "".ljust(8, ' '),
-                    "dt_atend": dt_atend.zfill(8), "procedimento": procedimento.zfill(10),
+                    "destino_usuario": destino_opt[:2], "dt_conclusao": dt_conclusao_conv,
+                    "dt_atend": dt_atend_conv, "procedimento": procedimento.zfill(10),
                     "quantidade": quantidade.zfill(6), "servico": servico.zfill(3),
                     "classificacao": classificacao.zfill(3), "cns_prof": dados_prof["cns"].zfill(15),
                     "cbo": dados_prof["cbo"].zfill(6), "local_realizacao": local_realizacao[0]
